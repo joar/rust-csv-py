@@ -1,0 +1,15 @@
+[package]
+name = "rust-csv-py"
+version = "0.1.0"
+authors = ["Joar Wandborg <joar@wandborg.se>"]
+
+[lib]
+name = "rustcsv"
+crate-type = ["cdylib"]
+
+[dependencies]
+csv = "1"
+
+[dependencies.pyo3]
+version = "0.2"
+features = ["extension-module"]
