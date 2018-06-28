@@ -18,8 +18,10 @@ BIG DISCLAIMER
 -   I'm not a production-ready Rust programmer.
 -   Python 3's |csv|_ stdlib module is pretty %#!& fast.
 
-Benchmark
+Benchmarks
 ================================================================================
+
+You'll have to run it yourself, here's how-ish:
 
 1.  Figure out the dependencies and install them, in my case it's:
 
