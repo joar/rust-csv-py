@@ -13,7 +13,7 @@ BIG DISCLAIMER
 
 -   This is not a production-ready library.
 -   I'm not a production-ready Rust programmer.
--   Python 3's ``csv`` stdlib module is pretty %#!& fast too. At least compared
+-   Python 3's ``csv`` stdlib module is pretty %#!& fast too, at least compared
     to this package.
 
 
