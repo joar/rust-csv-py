@@ -13,6 +13,8 @@ type RecordsIter = Iterator<Item=csv::Result<csv::StringRecord>>;
 #[class(subclass)]
 struct CSVReader {
     token: PyToken,
+    // It would be nice to have a reference to csv::Reader here, 
+    // but I haven't figured out lifetimes yet.
     iter: Box<RecordsIter>,
 }
 
@@ -27,7 +29,10 @@ fn records_iterator(
         .has_headers(false)
         .terminator(csv::Terminator::Any(terminator))
         .from_path(path)?;
-
+    
+    // XXX: I'm not sure that this doesn't read all the records into memory.
+    // If that is the case it would explain why I don't need to confront
+    // lifetimes in my struct.
     let iter: Box<RecordsIter> = Box::new(rdr.into_records());
     return Ok(iter);
 }
@@ -56,6 +61,7 @@ impl CSVReader {
         delimiter: Option<&PyBytes>,
         terminator: Option<&PyBytes>,
     ) -> PyResult<()> {
+        // I've hung these parameter extractions here to DRY.
         let delimiter_arg = match delimiter {
             Some(bytes) => {
                 get_single_byte(bytes)?
@@ -93,7 +99,9 @@ impl CSVReader {
 
 #[inline]
 fn record_to_list(py: Python, record: csv::StringRecord) -> PyResult<PyObject> {
-    // TODO: Figure out how to create tuples
+    // TODO:
+    // Figure out how to create PyTuple directly from StringRecord,
+    // this could be the straw that tips the benchmarks in our favor.
     let list = PyList::new::<&str>(py, &[]);
     for field in record.iter() {
         list.append(field)?;
