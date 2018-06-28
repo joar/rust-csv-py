@@ -5,15 +5,12 @@ extern crate pyo3;
 
 use pyo3::exc;
 use pyo3::prelude::*;
-use pyo3::py::class as pyclass;
-use pyo3::py::methods as pymethods;
-use pyo3::py::modinit as pymodinit;
-use pyo3::py::proto as pyproto;
+use pyo3::py::*;
 
 
 type RecordsIter = Iterator<Item=csv::Result<csv::StringRecord>>;
 
-#[pyclass]
+#[class(subclass)]
 struct CSVReader {
     token: PyToken,
     iter: Box<RecordsIter>,
@@ -22,29 +19,62 @@ struct CSVReader {
 
 fn records_iterator(
     path: String,
+    delimiter: u8,
+    terminator: u8,
 ) -> csv::Result<Box<RecordsIter>> {
     let rdr = csv::ReaderBuilder::new()
-        .delimiter(b'\x01')
-        .flexible(true)
+        .delimiter(delimiter)
         .has_headers(false)
-        .terminator(csv::Terminator::Any(b'\x02'))
+        .terminator(csv::Terminator::Any(terminator))
         .from_path(path)?;
 
     let iter: Box<RecordsIter> = Box::new(rdr.into_records());
     return Ok(iter);
 }
 
-#[pymethods]
+fn get_single_byte(bytes: &PyBytes) -> PyResult<u8> {
+    let data: &[u8] = bytes.data();
+    if data.len() > 1 {
+        return Err(PyErr::new::<exc::ValueError, _>(
+            format!("Expected a single byte, got {:?}", data)
+        ));
+    }
+    if data.len() < 1 {
+        return Err(PyErr::new::<exc::ValueError, _>(
+            format!("Expected a single byte, got {:?}", data)
+        ));
+    }
+    return Ok(data[0]);
+}
+
+#[methods]
 impl CSVReader {
     #[new]
     fn __new__(
         obj: &PyRawObject,
         path: String,
+        delimiter: Option<&PyBytes>,
+        terminator: Option<&PyBytes>,
     ) -> PyResult<()> {
+        let delimiter_arg = match delimiter {
+            Some(bytes) => {
+                get_single_byte(bytes)?
+            }
+            None => { b',' }
+        };
+        let terminator_arg = match terminator {
+            Some(bytes) => {
+                get_single_byte(bytes)?
+            }
+            None => { b'\n' }
+        };
+
         let iter = match records_iterator(
             path,
+            delimiter_arg,
+            terminator_arg,
         ) {
-            Ok(rdr) => rdr,
+            Ok(it) => it,
             Err(err) => {
                 return Err(PyErr::new::<exc::IOError, _>(
                     format!("Could not parse CSV: {:?}", err)
@@ -61,7 +91,9 @@ impl CSVReader {
     }
 }
 
+#[inline]
 fn record_to_list(py: Python, record: csv::StringRecord) -> PyResult<PyObject> {
+    // TODO: Figure out how to create tuples
     let list = PyList::new::<&str>(py, &[]);
     for field in record.iter() {
         list.append(field)?;
@@ -69,7 +101,7 @@ fn record_to_list(py: Python, record: csv::StringRecord) -> PyResult<PyObject> {
     return Ok(list.into());
 }
 
-#[pyproto]
+#[proto]
 impl PyIterProtocol for CSVReader {
     fn __iter__(&mut self) -> PyResult<PyObject> {
         Ok(self.into())
@@ -101,7 +133,7 @@ impl PyIterProtocol for CSVReader {
 // Add bindings to the generated python module
 // N.B: names: "_rustcsv" must be the name of the `.so` or `.pyd` file
 /// This module is implemented in Rust.
-#[pymodinit(_rustcsv)]
+#[modinit(_rustcsv)]
 fn init_mod(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<CSVReader>()?;
     Ok(())

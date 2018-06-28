@@ -5,8 +5,11 @@ name = "pypi"
 
 [packages]
 pytest = "*"
+ipython = "*"
 
 [dev-packages]
+colorlog = "*"
+pytest-benchmark = {version = "*", extras = ["histogram"]}
 
 [requires]
 python_version = "3.6"
