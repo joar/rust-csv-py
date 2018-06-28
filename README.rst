@@ -5,7 +5,7 @@
 .. _pyo3: https://github.com/PyO3/pyo3
 
 ################################################################################
-|rust-csv|_ + |PyO3|_ = Not much slower than Python 3's ´´csv´´ :tada:
+|rust-csv|_ + |PyO3|_ = Not much slower than Python 3's ``csv`` :tada:
 ################################################################################
 
 BIG DISCLAIMER
@@ -29,6 +29,6 @@ Benchmark
 
         $ make benchmark
         
-**Spoiler:** It's about tied on my machine. Python 3's ´´csv´´ has the upper 
+**Spoiler:** It's about tied on my machine. Python 3's ``csv`` has the upper 
 hand, I might have an ace up my sleeve if I figure out how to convert
-´´csv::StringRecord´´ straight to ´´pyo3::PyTuple´´.
+``csv::StringRecord`` straight to ``pyo3::PyTuple`` instead of ``pyo3::PyList``.
