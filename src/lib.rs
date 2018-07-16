@@ -1,5 +1,6 @@
 #![feature(proc_macro, specialization)]
 
+
 extern crate csv;
 extern crate pyo3;
 
@@ -8,12 +9,12 @@ use pyo3::prelude::*;
 use pyo3::py::*;
 
 
-type RecordsIter = Iterator<Item=csv::Result<csv::StringRecord>>;
+type RecordsIter = Iterator<Item=csv::Result<csv::ByteRecord>>;
 
 #[class(subclass)]
 struct CSVReader {
     token: PyToken,
-    // It would be nice to have a reference to csv::Reader here, 
+    // It would be nice to have a reference to csv::Reader here,
     // but I haven't figured out lifetimes yet.
     iter: Box<RecordsIter>,
 }
@@ -29,11 +30,11 @@ fn records_iterator(
         .has_headers(false)
         .terminator(csv::Terminator::Any(terminator))
         .from_path(path)?;
-    
+
     // XXX: I'm not sure that this doesn't read all the records into memory.
     // If that is the case it would explain why I don't need to confront
     // lifetimes in my struct.
-    let iter: Box<RecordsIter> = Box::new(rdr.into_records());
+    let iter: Box<RecordsIter> = Box::new(rdr.into_byte_records());
     return Ok(iter);
 }
 
@@ -98,15 +99,12 @@ impl CSVReader {
 }
 
 #[inline]
-fn record_to_list(py: Python, record: csv::StringRecord) -> PyResult<PyObject> {
-    // TODO:
-    // Figure out how to create PyTuple directly from StringRecord,
-    // this could be the straw that tips the benchmarks in our favor.
-    let list = PyList::new::<&str>(py, &[]);
-    for field in record.iter() {
-        list.append(field)?;
-    }
-    return Ok(list.into());
+fn record_to_tuple(py: Python, record: csv::ByteRecord) -> PyResult<Py<PyTuple>> {
+    let items: Vec<Py<PyBytes>> = record.iter().map(|field| {
+        PyBytes::new(py, field)
+    }).collect();
+
+    Ok(PyTuple::new(py, items.as_slice()))
 }
 
 #[proto]
@@ -121,8 +119,8 @@ impl PyIterProtocol for CSVReader {
                 Ok(record) => {
                     let gil = Python::acquire_gil();
                     let py = gil.python();
-                    let output = record_to_list(py, record)?;
-                    return Ok(Some(output));
+                    let output = record_to_tuple(py, record)?;
+                    return Ok(Some(output.into()));
                 }
                 Err(err) => {
                     return Err(PyErr::new::<exc::IOError, _>(

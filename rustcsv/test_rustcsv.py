@@ -43,7 +43,7 @@ def applelike_csv_file(applelike_csv_bytes) -> Path:
     [
         pytest.param(
             b"x\x01y\x01z\x02" b"a\x01b\x01c\n\n\x02",
-            [["x", "y", "z"], ["a", "b", "c\n\n"]],
+            [(b"x", b"y", b"z"), (b"a", b"b", b"c\n\n")],
         )
     ],
     ids=repr,
@@ -69,7 +69,6 @@ def impl_rust(path):
     i = 0
     for i, row in enumerate(CSVReader(str(path)), start=1):
         process_row(row)
-
     return i
 
 
@@ -91,10 +90,10 @@ def write_large_csv(fd, rows=1000 * 1000):
     "implementation", [impl_rust, impl_stdlib]
 )
 @pytest.mark.parametrize(
-    "row_count", [1_000, 10_000, 100_000, 1_000_000]
+    "row_count", [1_000, 10_000, 100_000]
 )
 def test_read_csv(benchmark: BenchmarkFixture, implementation, row_count):
-    rounds = 2
+    rounds = 10
     with tempfile.NamedTemporaryFile("wb") as writable_csv_fd:
         read_row_count = benchmark.pedantic(
             implementation,
