@@ -7,6 +7,4 @@ from ._rustcsv import CSVReader
 _log = logging.getLogger(__name__)
 
 
-__all__ = [
-    'CSVReader',
-]
+__all__ = ["CSVReader"]
