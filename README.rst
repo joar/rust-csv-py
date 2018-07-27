@@ -7,9 +7,14 @@
 .. |csv| replace:: ``csv``
 .. _csv: https://docs.python.org/3/library/csv.html
 
+.. |travis-badge| image:: https://travis-ci.com/joar/rust-csv-py.svg?branch=master
+.. _travis-badge: https://travis-ci.com/joar/rust-csv-py
+
 ################################################################################
 |rust-csv|_ + |PyO3|_ = Not much slower than |csv|_ :tada:
 ################################################################################
+
+|travis-badge|_
 
 BIG DISCLAIMER
 ================================================================================
