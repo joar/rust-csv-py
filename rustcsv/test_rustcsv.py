@@ -6,7 +6,6 @@ from pathlib import Path
 
 import pytest
 from pytest_benchmark.fixture import BenchmarkFixture
-
 from rustcsv import CSVReader
 
 

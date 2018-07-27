@@ -1,9 +1,9 @@
 import csv
 import tempfile
+from functools import partial
 
 import pytest
 from pytest_benchmark.fixture import BenchmarkFixture
-
 from rustcsv import CSVReader
 
 

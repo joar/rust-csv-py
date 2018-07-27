@@ -26,3 +26,7 @@ test:
 .PHONY: black
 black:
 	$(PY_RUN) black ./rustcsv
+
+.PHONY: isort
+isort:
+	$(PY_RUN) isort -y
