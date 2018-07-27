@@ -9,7 +9,7 @@ use pyo3::prelude::*;
 use pyo3::py::*;
 
 
-type RecordsIter = Iterator<Item=csv::Result<csv::ByteRecord>>;
+type RecordsIter = Iterator<Item=csv::Result<csv::StringRecord>>;
 
 #[class(subclass)]
 struct CSVReader {
@@ -34,7 +34,7 @@ fn records_iterator(
     // XXX: I'm not sure that this doesn't read all the records into memory.
     // If that is the case it would explain why I don't need to confront
     // lifetimes in my struct.
-    let iter: Box<RecordsIter> = Box::new(rdr.into_byte_records());
+    let iter: Box<RecordsIter> = Box::new(rdr.into_records());
     return Ok(iter);
 }
 
@@ -98,15 +98,6 @@ impl CSVReader {
     }
 }
 
-#[inline]
-fn record_to_tuple(py: Python, record: csv::ByteRecord) -> PyResult<Py<PyTuple>> {
-    let items: Vec<Py<PyBytes>> = record.iter().map(|field| {
-        PyBytes::new(py, field)
-    }).collect();
-
-    Ok(PyTuple::new(py, items.as_slice()))
-}
-
 #[proto]
 impl PyIterProtocol for CSVReader {
     fn __iter__(&mut self) -> PyResult<PyObject> {
@@ -119,8 +110,10 @@ impl PyIterProtocol for CSVReader {
                 Ok(record) => {
                     let gil = Python::acquire_gil();
                     let py = gil.python();
-                    let output = record_to_tuple(py, record)?;
-                    return Ok(Some(output.into()));
+                    let items: Vec<&str> = record.iter().collect();
+                    let tuple = PyTuple::new(py, items.as_slice());
+                    let output = tuple.into();
+                    return Ok(Some(output));
                 }
                 Err(err) => {
                     return Err(PyErr::new::<exc::IOError, _>(
