@@ -3,9 +3,15 @@ python:
   - "3.6"
 dist: xenial
 
+env:
+  - RUST_VERSION=nightly
+
 install:
   - pip install pipenv
   - pipenv install --dev
+  - curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUST_VERSION
+  - export PATH="$HOME/.cargo/bin:$PATH"
+  - make build-release
 
 script:
   - make test benchmark
