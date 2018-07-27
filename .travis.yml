@@ -4,6 +4,7 @@ python:
 dist: xenial
 
 install:
+  - pip install pipenv
   - pipenv install
 
 script:
