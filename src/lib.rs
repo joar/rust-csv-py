@@ -1,4 +1,4 @@
-#![feature(proc_macro, specialization)]
+#![feature(use_extern_macros, specialization)]
 
 
 extern crate csv;
@@ -6,12 +6,11 @@ extern crate pyo3;
 
 use pyo3::exc;
 use pyo3::prelude::*;
-use pyo3::py::*;
 
 
 type RecordsIter = Iterator<Item=csv::Result<csv::StringRecord>>;
 
-#[class(subclass)]
+#[pyclass(subclass)]
 struct CSVReader {
     token: PyToken,
     // It would be nice to have a reference to csv::Reader here,
@@ -53,7 +52,7 @@ fn get_single_byte(bytes: &PyBytes) -> PyResult<u8> {
     return Ok(data[0]);
 }
 
-#[methods]
+#[pymethods]
 impl CSVReader {
     #[new]
     fn __new__(
@@ -98,7 +97,7 @@ impl CSVReader {
     }
 }
 
-#[proto]
+#[pyproto]
 impl PyIterProtocol for CSVReader {
     fn __iter__(&mut self) -> PyResult<PyObject> {
         Ok(self.into())
@@ -132,7 +131,7 @@ impl PyIterProtocol for CSVReader {
 // Add bindings to the generated python module
 // N.B: names: "_rustcsv" must be the name of the `.so` or `.pyd` file
 /// This module is implemented in Rust.
-#[modinit(_rustcsv)]
+#[pymodinit(_rustcsv)]
 fn init_mod(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add_class::<CSVReader>()?;
     Ok(())
