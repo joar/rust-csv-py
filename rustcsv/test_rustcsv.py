@@ -43,13 +43,13 @@ def applelike_csv_file(applelike_csv_bytes) -> Path:
     [
         pytest.param(
             b"x\x01y\x01z\x02" b"a\x01b\x01c\n\n\x02",
-            [(b"x", b"y", b"z"), (b"a", b"b", b"c\n\n")],
+            [("x", "y", "z"), ("a", "b", "c\n\n")],
         )
     ],
     ids=repr,
 )
 def test_reader(csv_content, expected):
-    with tempfile.NamedTemporaryFile("w+b") as writable_csv_fd:
+    with tempfile.NamedTemporaryFile("w+b", dir="/dev/shm/") as writable_csv_fd:
         writable_csv_fd.write(csv_content)
         writable_csv_fd.flush()
         result = list(
@@ -61,7 +61,7 @@ def test_reader(csv_content, expected):
 
 
 def process_row(row):
-    a, b, c = row
+    a, b, c, *rest = row
     assert int(a) + int(b) == int(c)
 
 
@@ -79,9 +79,9 @@ def impl_stdlib(path):
     return i
 
 
-def write_large_csv(fd, rows=1000 * 1000):
+def write_large_csv(fd, rows=10_000):
     for i in range(rows):
-        fd.write(f"{i},{i * 2},{i * 3}".encode() + b"\n")
+        fd.write(f"{i},{i * 2},{i * 3},{'x' * i}".encode() + b"\n")
 
     fd.flush()
 
@@ -89,15 +89,16 @@ def write_large_csv(fd, rows=1000 * 1000):
 @pytest.mark.parametrize(
     "implementation", [impl_rust, impl_stdlib]
 )
-@pytest.mark.parametrize(
-    "row_count", [1_000, 10_000, 100_000]
-)
-def test_read_csv(benchmark: BenchmarkFixture, implementation, row_count):
-    rounds = 10
+def test_read_csv_10_000(benchmark: BenchmarkFixture, implementation):
+    rounds = 20
+    row_count = 10_000
     with tempfile.NamedTemporaryFile("wb") as writable_csv_fd:
+        args = (writable_csv_fd.name,)
+        # write_large_csv(writable_csv_fd, row_count)
+        # read_row_count = benchmark(implementation, *args)
         read_row_count = benchmark.pedantic(
             implementation,
-            (writable_csv_fd.name,),
+            args,
             setup=partial(write_large_csv, writable_csv_fd, row_count),
             rounds=rounds,
         )

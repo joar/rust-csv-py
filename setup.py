@@ -1,7 +1,7 @@
 import sys
 import os
 
-from setuptools import setup
+from setuptools import setup, find_packages
 from setuptools.command.test import test as TestCommand
 
 
@@ -67,15 +67,15 @@ setup(
         "Operating System :: POSIX",
         "Operating System :: MacOS :: MacOS X",
     ],
-    packages=["rustcsv"],
+    packages=find_packages(),
     rust_extensions=[
         RustExtension(
             "rustcsv._rustcsv", "Cargo.toml", debug=RUST_EXTENSION_DEBUG
         )
     ],
-    install_requires=install_requires,
     tests_require=tests_require,
     setup_requires=setup_requires,
+    install_requires=install_requires,
     include_package_data=True,
     zip_safe=False,
     cmdclass=dict(test=PyTest),
