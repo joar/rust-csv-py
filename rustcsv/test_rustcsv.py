@@ -1,11 +1,8 @@
-import csv
 import logging
 import tempfile
-from functools import partial
 from pathlib import Path
 
 import pytest
-from pytest_benchmark.fixture import BenchmarkFixture
 from rustcsv import CSVReader
 
 
@@ -53,9 +50,7 @@ def test_file_does_not_exist():
     ids=repr,
 )
 def test_reader(csv_content, expected):
-    with tempfile.NamedTemporaryFile(
-        "w+b", dir="/dev/shm/"
-    ) as writable_csv_fd:
+    with tempfile.NamedTemporaryFile("w+b") as writable_csv_fd:
         writable_csv_fd.write(csv_content)
         writable_csv_fd.flush()
         result = list(

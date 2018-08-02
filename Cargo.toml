@@ -10,6 +10,9 @@ crate-type = ["cdylib"]
 [dependencies]
 csv = "1"
 
+[profile.release]
+lto = true
+
 [dependencies.pyo3]
 version = "0.3"
 features = ["extension-module"]
