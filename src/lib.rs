@@ -1,18 +1,26 @@
 #![feature(use_extern_macros, specialization)]
 
-
+#[macro_use] extern crate log;
+extern crate env_logger;
 extern crate csv;
 extern crate pyo3;
 
+/// Used for testing
+extern crate tempfile;
+
+mod record;
+mod file_like_reader;
+
 use pyo3::exc;
 use pyo3::prelude::*;
-
+use file_like_reader::FileLikeReader;
 
 type RecordsIter = Iterator<Item=csv::Result<csv::StringRecord>>;
 
 #[pyclass(subclass)]
 struct CSVReader {
     token: PyToken,
+    file_like: &'static PyObjectRef,
     // It would be nice to have a reference to csv::Reader here,
     // but I haven't figured out lifetimes yet.
     iter: Box<RecordsIter>,
@@ -20,7 +28,8 @@ struct CSVReader {
 
 
 fn records_iterator(
-    path: String,
+//    path: String,
+    reader: FileLikeReader<'static>,
     delimiter: u8,
     terminator: u8,
 ) -> csv::Result<Box<RecordsIter>> {
@@ -28,7 +37,8 @@ fn records_iterator(
         .delimiter(delimiter)
         .has_headers(false)
         .terminator(csv::Terminator::Any(terminator))
-        .from_path(path)?;
+//        .from_path(path)?;
+        .from_reader(reader);
 
     // XXX: I'm not sure that this doesn't read all the records into memory.
     // If that is the case it would explain why I don't need to confront
@@ -57,7 +67,8 @@ impl CSVReader {
     #[new]
     fn __new__(
         obj: &PyRawObject,
-        path: String,
+//        path: String,
+        file_like: &'static PyObjectRef,
         delimiter: Option<&PyBytes>,
         terminator: Option<&PyBytes>,
     ) -> PyResult<()> {
@@ -75,8 +86,14 @@ impl CSVReader {
             None => { b'\n' }
         };
 
+        info!(target: "rustcsv", "file_like: {:?}", file_like);
+
+        let reader = FileLikeReader::new(
+            file_like
+        );
+
         let iter = match records_iterator(
-            path,
+            reader,
             delimiter_arg,
             terminator_arg,
         ) {
@@ -91,6 +108,7 @@ impl CSVReader {
         obj.init(|token| {
             CSVReader {
                 token,
+                file_like,
                 iter,
             }
         })
@@ -106,13 +124,11 @@ impl PyIterProtocol for CSVReader {
     fn __next__(&mut self) -> PyResult<Option<PyObject>> {
         match self.iter.next() {
             Some(res) => match res {
-                Ok(record) => {
-                    let gil = Python::acquire_gil();
-                    let py = gil.python();
-                    let items: Vec<&str> = record.iter().collect();
-                    let tuple = PyTuple::new(py, items.as_slice());
-                    let output = tuple.into();
-                    return Ok(Some(output));
+                Ok(r) => {
+                    let py = self.token.py();
+                    let rec: record::Record = r.into();
+                    let t = rec.into_tuple(py);
+                    return Ok(Some(t.into_object(py)));
                 }
                 Err(err) => {
                     return Err(PyErr::new::<exc::IOError, _>(
@@ -121,18 +137,27 @@ impl PyIterProtocol for CSVReader {
                 }
             },
             None => {
+                info!("Reached end");
                 return Ok(None);
             }
         }
     }
 }
 
+impl Drop for CSVReader {
+    fn drop(&mut self) {
+        info!("Dropping CSVReader")
+    }
+}
+
 
 // Add bindings to the generated python module
 // N.B: names: "_rustcsv" must be the name of the `.so` or `.pyd` file
-/// This module is implemented in Rust.
+/// PyO3 + rust-csv
+/// An exploration in reading CSV as fast as possible from Python.
 #[pymodinit(_rustcsv)]
 fn init_mod(_py: Python, m: &PyModule) -> PyResult<()> {
+    env_logger::init();
     m.add_class::<CSVReader>()?;
     Ok(())
 }

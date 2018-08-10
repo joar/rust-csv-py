@@ -11,9 +11,14 @@ default:
 develop:
 	$(PY_RUN) python setup.py develop
 
+.PHONY: build-debug
+develop-debug:
+	$(PY_RUN) env RUST_EXTENSION_DEBUG=True \
+		python setup.py develop
+
 .PHONY: build-release
-build-release:
-	$(PY_RUN) env RUST_EXTENSION_DEBUG=False RUSTFLAGS="-C target-cpu=native" \
+develop-release:
+	$(PY_RUN) env RUST_EXTENSION_DEBUG=False \
 		python setup.py develop
 
 .PHONY: benchmark
@@ -21,6 +26,8 @@ benchmark: $(GEOLITE_EN_CSV_PATH) | build-release
 	$(PY_RUN) pytest \
 		-vv \
 		--showlocals \
+		--benchmark-timer time.process_time \
+		--benchmark-group-by 'func' \
 		--benchmark-histogram \
 		--benchmark-autosave \
 		--benchmark-only
