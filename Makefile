@@ -1,4 +1,5 @@
 RUST_EXTENSION_DEBUG ?= True
+RUSTFLAGS ?= target-cpu=native
 PY_RUN ?= pipenv run
 PYTEST_OPTS ?= -vvl --benchmark-skip
 GEOLITE_EN_CSV_PATH = res/csv/geolite-city-en.csv
@@ -13,13 +14,13 @@ develop:
 
 .PHONY: build-debug
 develop-debug:
-	$(PY_RUN) env RUST_EXTENSION_DEBUG=True \
-		python setup.py develop
+	env RUST_EXTENSION_DEBUG=True \
+		make develop
 
 .PHONY: build-release
 develop-release:
-	$(PY_RUN) env RUST_EXTENSION_DEBUG=False \
-		python setup.py develop
+	env RUST_EXTENSION_DEBUG=False \
+		make develop
 
 .PHONY: benchmark
 benchmark: $(GEOLITE_EN_CSV_PATH) | build-release

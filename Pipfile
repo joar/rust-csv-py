@@ -4,10 +4,11 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-pytest = "*"
-ipython = "*"
+click = "*"
 
 [dev-packages]
+ipython = "*"
+pytest = "*"
 black = "==18.6b4"
 isort = "*"
 colorlog = "*"

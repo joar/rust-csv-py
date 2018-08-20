@@ -6,3 +6,5 @@ Cargo.lock
 benchmark*
 
 /res/csv/*
+
+.gdb_history
