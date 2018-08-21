@@ -24,21 +24,8 @@ impl<'i> InstanceWrapper<'i> {
         Ok(call_result.extract()?)
     }
 
-    pub fn get_instance_name_via_eval(&self) -> PyResult<String> {
-        let gil = Python::acquire_gil();
-        let py = gil.python();
-        let locals = PyDict::new(py);
-        locals.set_item("inst", self.instance)?;
-
-        let call_result = py.eval("inst.get_name()", None, Some(locals))?;
-
-        debug!("call_result: {:?}", call_result);
-        debug!("locals = {:?}", locals);
-        Ok(call_result.extract()?)
-    }
-
     pub fn say_hello_to_instance(&self) -> PyResult<String> {
-        let name = self.get_instance_name_via_eval()?;
+        let name = self.get_instance_name()?;
         Ok(name)
     }
 }

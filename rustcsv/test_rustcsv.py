@@ -23,8 +23,8 @@ def configure_logging():
     logger.setLevel(logging.DEBUG)
 
 
-def test_file_does_not_exist():
-    with pytest.raises(IOError):
+def test_str_argument_instead_of_file_like():
+    with pytest.raises(AttributeError, message="str has no attribute 'read'"):
         CSVReader("does-not-exist")
 
 

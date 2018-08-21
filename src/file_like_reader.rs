@@ -6,58 +6,61 @@ use std::io;
 use std::io::Read;
 use std::io::Write;
 
+/// Wraps a Python file-like readable object
 #[derive(Debug)]
-pub struct FileLikeReader<'file_like> {
-    file_like: &'file_like PyObjectRef,
+pub struct PyReader {
+    file_like: PyObject,
 }
 
-impl<'file_like> FileLikeReader<'file_like> {
-    pub fn new(file_like: &'file_like PyObjectRef) -> FileLikeReader {
-        debug!("Creating from file_like {:?}", file_like);
-        FileLikeReader { file_like }
-    }
-
-    fn read_bytes_via_eval(&self, size: usize) -> PyResult<Box<Vec<u8>>> {
+impl PyReader {
+    pub fn from_ref(file_like: PyObject) -> PyResult<PyReader> {
         let gil = Python::acquire_gil();
         let py = gil.python();
-        let locals = PyDict::new(py);
-        let fd = self.file_like.to_object(py);
-        locals.set_item("fd", fd)?;
-        locals.set_item("length", size)?;
+        info!("Creating from file_like_ref {:?}", file_like.as_ref(py));
+        let read_method = file_like.getattr(py, "read")?;
 
-        let call_result = py.eval("fd.read(length)", None, Some(locals))?;
-
-        debug!("call_result: {:?}", call_result);
-        debug!("locals = {:?}", locals);
-        Ok(Box::new(call_result.extract()?))
+        Ok(PyReader { file_like })
     }
 
     fn read_bytes(&self, size: usize) -> PyResult<Box<Vec<u8>>> {
+        let gil = Python::acquire_gil();
+        let py = gil.python();
+
         // Get the fd.read() callable
-        let read_func: &PyObjectRef = self.file_like.getattr("read")?;
-        debug!("read_func is {:?}", read_func);
+        let read_func: PyObject = self.file_like.getattr(py, "read")?;
+        debug!("read_func is {:?}", read_func.as_ref(py));
 
         // Call fd.read(len(buf))
-        let call_result: &PyObjectRef = read_func.call1((size,))?;
-        debug!("call_result: {}: {:?}", call_result, call_result);
+        let call_result = read_func.call1(py, (size,))?;
+        debug!("call_result: {:?}", &call_result);
 
         // Extract the PyBytes into a Box<Vec<u8>>
-        Ok(Box::new(call_result.extract()?))
+        Ok(Box::new(call_result.extract(py)?))
     }
 }
 
-impl<'file_like> Read for FileLikeReader<'file_like> {
+impl Read for PyReader {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         debug!("buf.len(): {:?}", buf.len());
-        let read_buf = self.read_bytes(buf.len())?;
-
-        // Write the bytes into "buf"
-        // Need to borrow as mutable here, not sure why
-        buf.as_mut().write(&read_buf[..])
+        match self.read_bytes(buf.len()) {
+            // Write the bytes into "buf"
+            // Need to borrow as mutable here, not sure why
+            Ok(read_buf) => buf.as_mut().write(&read_buf[..]),
+            Err(error) => {
+                let gil = Python::acquire_gil();
+                let py = gil.python();
+                error!("Could not read from {:?}: {:?}", self.file_like, error);
+                error.clone_ref(py).print(py);
+                Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("Could not read from {:?}", self.file_like),
+                ))
+            }
+        }
     }
 }
 
-impl<'file_like> Drop for FileLikeReader<'file_like> {
+impl Drop for PyReader {
     fn drop(&mut self) {
         debug!("Dropping {:?}", self);
     }
@@ -65,7 +68,7 @@ impl<'file_like> Drop for FileLikeReader<'file_like> {
 
 #[cfg(test)]
 mod tests {
-    use super::FileLikeReader;
+    use super::PyReader;
     use pyo3::prelude::*;
     use pyo3::{PyDict, PyResult, Python};
     use std::io::Read;
@@ -95,7 +98,7 @@ mod tests {
                 panic!("Error: {:?}", err);
             });
 
-        let mut rdr = FileLikeReader::new(file_like);
+        let mut rdr = PyReader::new(file_like);
         let mut buffer = String::new();
         rdr.read_to_string(&mut buffer).unwrap_or_else(|err| {
             panic!("Could not read to string: {}", err);

@@ -1,4 +1,4 @@
-#![feature(use_extern_macros, specialization, extern_prelude)]
+#![feature(specialization, extern_prelude)]
 
 extern crate csv;
 extern crate env_logger;
@@ -9,7 +9,8 @@ extern crate pyo3;
 /// Used for testing
 extern crate tempfile;
 
-use file_like_reader::FileLikeReader;
+use file_like_reader::PyReader;
+use instance::InstanceWrapper;
 use pyo3::exc;
 use pyo3::prelude::*;
 
@@ -28,7 +29,7 @@ struct CSVReader {
 }
 
 fn records_iterator(
-    readable: FileLikeReader<'static>,
+    readable: PyReader,
     delimiter: u8,
     terminator: u8,
 ) -> csv::Result<Box<RecordsIter>> {
@@ -73,49 +74,32 @@ fn get_single_byte(bytes: &PyBytes) -> PyResult<u8> {
     return Ok(data[0]);
 }
 
-impl CSVReader {
-    /// Create a new CSReader object
-    fn new<'fd>(
-        token: PyToken,
-        file_like: &'static PyObjectRef,
-        delimiter: u8,
-        terminator: u8,
-    ) -> PyResult<CSVReader> {
-        info!("file_like: {:?}", file_like);
-
-        let gil = Python::acquire_gil();
-        let py = gil.python();
-
-        let reader = FileLikeReader::new(file_like);
-
-        let iter = match records_iterator(reader, delimiter, terminator) {
-            Ok(it) => it,
-            Err(err) => {
-                return Err(PyErr::new::<exc::IOError, _>(format!(
-                    "Could not parse CSV: {:?}",
-                    err
-                )));
-            }
-        };
-
-        Ok(CSVReader { token, iter })
-    }
-}
-
 /// CSV reader
 #[pymethods]
 impl CSVReader {
     #[new]
     fn __new__(
         obj: &PyRawObject,
-        file_like: &'static PyObjectRef,
+        file_like_ref: &'static PyObjectRef,
         delimiter: Option<&PyBytes>,
         terminator: Option<&PyBytes>,
     ) -> PyResult<()> {
+        let gil = Python::acquire_gil();
+        let py = gil.python();
+
+        let file_like = file_like_ref.to_object(py);
+
         let delimiter_arg = get_optional_single_byte(delimiter, b',')?;
         let terminator_arg = get_optional_single_byte(terminator, b'\n')?;
 
-        obj.init(|token| CSVReader::new(token, file_like, delimiter_arg, terminator_arg).unwrap())
+        let reader = PyReader::from_ref(file_like)?;
+        match records_iterator(reader, delimiter_arg, terminator_arg) {
+            Ok(iter) => {
+                obj.init(|token| CSVReader { token, iter });
+                Ok(())
+            }
+            Err(err) => Err(exc::IOError::new(format!("Could not parse CSV: {:?}", err))),
+        }
     }
 }
 
@@ -137,10 +121,16 @@ impl PyIterProtocol for CSVReader {
                     let t = rec.into_tuple(py);
                     Ok(Some(t.into_object(py)))
                 }
-                Err(err) => Err(PyErr::new::<exc::IOError, _>(format!(
-                    "Could not read row: {:?}",
-                    err
-                ))),
+                Err(error) => match error.into_kind() {
+                    csv::ErrorKind::Io(err) => {
+                        error!("IO error: {:?}", err);
+                        Err(PyErr::from(err))
+                    }
+                    not_io_error => Err(exc::ValueError::new(format!(
+                        "CSV parsing error: {:?}",
+                        not_io_error
+                    ))),
+                },
             },
             None => {
                 info!("Reached end");
@@ -155,8 +145,6 @@ impl Drop for CSVReader {
         info!("Dropping CSVReader")
     }
 }
-
-use instance::InstanceWrapper;
 
 #[pyfunction]
 pub fn wrap_and_hello(instance: &'static PyObjectRef) -> PyResult<String> {
