@@ -2,7 +2,6 @@ RUST_EXTENSION_DEBUG ?= True
 RUSTFLAGS ?= target-cpu=native
 PY_RUN ?= pipenv run
 PYTEST_OPTS ?= -vvl --benchmark-skip
-GEOLITE_EN_CSV_PATH = res/csv/geolite-city-en.csv
 
 .PHONY: default
 default:
@@ -45,11 +44,27 @@ black:
 isort:
 	$(PY_RUN) isort -y
 
-# Benchmarking data
+# Resource files
+# ==============================================================================
+
+RESOURCE_PATH ?= res/csv
+
+$(RESOURCE_PATH)/.created:
+	mkdir -p $(RESOURCE_PATH)
+	touch $(RESOURCE_PATH)/.created
+
+.PHONY: $(RESOURCE_PATH)
+$(RESOURCE_PATH): $(RESOURCE_PATH)/.created
+
+# GeoLite2 CSV
 # ------------------------------------------------------------------------------
 
+# Source URL for the zip
 GEOLITE_CITY_CSV_ZIP_URL = http://geolite.maxmind.com/download/geoip/database/GeoLite2-City-CSV.zip
-GEOLITE_CITY_CSV_ZIP = res/csv/GeoLite2-City-CSV.zip
+# Destination path for the downloaded zip
+GEOLITE_CITY_CSV_ZIP = $(RESOURCE_PATH)/GeoLite2-City-CSV.zip
+# Destination path for the "en" csv extracted from the zip
+GEOLITE_EN_CSV_PATH = $(RESOURCE_PATH)/geolite-city-en.csv
 GEOLITE_EN_CSV_ZIP_PATH_FILE = $(GEOLITE_CITY_CSV_ZIP).en-csv.path.txt
 GEOLITE_EN_CSV_ZIP_NAME = GeoLite2-City-Locations-en.csv
 
@@ -63,7 +78,7 @@ clean-csv-derived:
 		| grep -v '$(GEOLITE_CITY_CSV_ZIP)$$' \
 		| xargs -r rm -v
 
-$(GEOLITE_CITY_CSV_ZIP):
+$(GEOLITE_CITY_CSV_ZIP): $(RESOURCE_PATH)
 	curl \
 		--location \
 		'$(GEOLITE_CITY_CSV_ZIP_URL)' \

@@ -24,7 +24,7 @@ def configure_logging():
 
 
 def test_str_argument_instead_of_file_like():
-    with pytest.raises(AttributeError, message="str has no attribute 'read'"):
+    with pytest.raises(TypeError, message="str has no attribute 'read'"):
         CSVReader("does-not-exist")
 
 

@@ -6,7 +6,8 @@ use std::io;
 use std::io::Read;
 use std::io::Write;
 
-/// Wraps a Python file-like readable object
+/// Wraps a Python file-like readable object.
+/// The file-like object must be in binary mode
 #[derive(Debug)]
 pub struct PyReader {
     file_like: PyObject,
@@ -17,9 +18,14 @@ impl PyReader {
         let gil = Python::acquire_gil();
         let py = gil.python();
         info!("Creating from file_like_ref {:?}", file_like.as_ref(py));
-        let read_method = file_like.getattr(py, "read")?;
 
-        Ok(PyReader { file_like })
+        match file_like.getattr(py, "read") {
+            Ok(_) => Ok(PyReader { file_like }),
+            Err(error) => Err(exc::TypeError::new(format!(
+                "Expected a file-like object, got {:?} (original error: {:?})",
+                file_like.as_ref(py), error.to_object(py).as_ref(py)
+            ))),
+        }
     }
 
     fn read_bytes(&self, size: usize) -> PyResult<Box<Vec<u8>>> {
@@ -30,7 +36,7 @@ impl PyReader {
         let read_func: PyObject = self.file_like.getattr(py, "read")?;
         debug!("read_func is {:?}", read_func.as_ref(py));
 
-        // Call fd.read(len(buf))
+        // Call fd.read(size)
         let call_result = read_func.call1(py, (size,))?;
         debug!("call_result: {:?}", &call_result);
 
