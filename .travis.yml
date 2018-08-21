@@ -3,6 +3,10 @@ python:
   - "3.6"
 dist: xenial
 
+cache:
+  # caches $HOME/.cargo and $TRAVIS_BUILD_DIR/target
+  - cargo
+
 env:
   - RUST_VERSION=nightly
 
