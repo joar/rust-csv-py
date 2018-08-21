@@ -4,7 +4,7 @@ extern crate pyo3;
 use pyo3::prelude::*;
 
 pub struct InstanceWrapper<'i> {
-    pub instance: &'i PyObjectRef
+    pub instance: &'i PyObjectRef,
 }
 
 impl<'i> InstanceWrapper<'i> {
@@ -21,9 +21,7 @@ impl<'i> InstanceWrapper<'i> {
         debug!("call_result: {}: {:?}", call_result, call_result);
 
         // Extract the PyBytes into a Box<Vec<u8>>
-        Ok(
-            call_result.extract()?
-        )
+        Ok(call_result.extract()?)
     }
 
     pub fn get_instance_name_via_eval(&self) -> PyResult<String> {
@@ -32,11 +30,7 @@ impl<'i> InstanceWrapper<'i> {
         let locals = PyDict::new(py);
         locals.set_item("inst", self.instance)?;
 
-        let call_result = py.eval(
-            "inst.get_name()",
-            None,
-            Some(locals)
-        )?;
+        let call_result = py.eval("inst.get_name()", None, Some(locals))?;
 
         debug!("call_result: {:?}", call_result);
         debug!("locals = {:?}", locals);
@@ -49,7 +43,6 @@ impl<'i> InstanceWrapper<'i> {
     }
 }
 
-
 #[pyclass(subclass)]
 pub struct PyInstanceWrapper {
     wrapper: InstanceWrapper<'static>,
@@ -59,15 +52,10 @@ pub struct PyInstanceWrapper {
 #[pymethods]
 impl PyInstanceWrapper {
     #[new]
-    fn __new__(
-        obj: &PyRawObject,
-        instance: &'static PyObjectRef
-    ) -> PyResult<()> {
+    fn __new__(obj: &PyRawObject, instance: &'static PyObjectRef) -> PyResult<()> {
         obj.init(|token| PyInstanceWrapper {
             token,
-            wrapper: InstanceWrapper {
-                instance
-            }
+            wrapper: InstanceWrapper { instance },
         })
     }
 

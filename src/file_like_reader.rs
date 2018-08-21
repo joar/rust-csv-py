@@ -14,9 +14,7 @@ pub struct FileLikeReader<'file_like> {
 impl<'file_like> FileLikeReader<'file_like> {
     pub fn new(file_like: &'file_like PyObjectRef) -> FileLikeReader {
         debug!("Creating from file_like {:?}", file_like);
-        FileLikeReader {
-            file_like,
-        }
+        FileLikeReader { file_like }
     }
 
     fn read_bytes_via_eval(&self, size: usize) -> PyResult<Box<Vec<u8>>> {
@@ -27,11 +25,7 @@ impl<'file_like> FileLikeReader<'file_like> {
         locals.set_item("fd", fd)?;
         locals.set_item("length", size)?;
 
-        let call_result = py.eval(
-            "fd.read(length)",
-            None,
-            Some(locals)
-        )?;
+        let call_result = py.eval("fd.read(length)", None, Some(locals))?;
 
         debug!("call_result: {:?}", call_result);
         debug!("locals = {:?}", locals);
@@ -44,28 +38,18 @@ impl<'file_like> FileLikeReader<'file_like> {
         debug!("read_func is {:?}", read_func);
 
         // Call fd.read(len(buf))
-        let call_result: &PyObjectRef = read_func.call1((size, ))?;
+        let call_result: &PyObjectRef = read_func.call1((size,))?;
         debug!("call_result: {}: {:?}", call_result, call_result);
 
         // Extract the PyBytes into a Box<Vec<u8>>
-        Ok(
-            Box::new(
-                call_result.extract()?
-            )
-        )
+        Ok(Box::new(call_result.extract()?))
     }
 }
 
 impl<'file_like> Read for FileLikeReader<'file_like> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         debug!("buf.len(): {:?}", buf.len());
-        let read_buf = self.read_bytes(buf.len()).or_else(|err| {
-            error!("Python exception");
-            err.print(Python::acquire_gil().python());
-            panic!("AAAH");
-            // TODO: How do i print
-            Err(err)
-        })?;
+        let read_buf = self.read_bytes(buf.len())?;
 
         // Write the bytes into "buf"
         // Need to borrow as mutable here, not sure why
@@ -81,11 +65,11 @@ impl<'file_like> Drop for FileLikeReader<'file_like> {
 
 #[cfg(test)]
 mod tests {
-    use pyo3::{PyDict, PyResult, Python};
+    use super::FileLikeReader;
     use pyo3::prelude::*;
+    use pyo3::{PyDict, PyResult, Python};
     use std::io::Read;
     use std::io::Write;
-    use super::FileLikeReader;
     use tempfile::NamedTempFile;
 
     #[test]
@@ -99,16 +83,17 @@ mod tests {
 
         let locals = PyDict::new(py);
         let path = tmpfile.path();
-        locals.set_item("path", path.to_str())
+        locals
+            .set_item("path", path.to_str())
             .unwrap_or_else(|err| {
                 panic!("Could not set local: {:?}", err);
             });
 
-        let file_like = py.eval(
-            "open(path, 'rb')", None, Some(&locals),
-        ).unwrap_or_else(|err| {
-            panic!("Error: {:?}", err);
-        });
+        let file_like = py
+            .eval("open(path, 'rb')", None, Some(&locals))
+            .unwrap_or_else(|err| {
+                panic!("Error: {:?}", err);
+            });
 
         let mut rdr = FileLikeReader::new(file_like);
         let mut buffer = String::new();

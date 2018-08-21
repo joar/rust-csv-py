@@ -14,6 +14,7 @@ env_logger = "*"
 tempfile = "3"
 
 [dependencies.pyo3]
+version = "0.4.1"
 features = ["extension-module", "python3"]
 path = "pyo3"
 

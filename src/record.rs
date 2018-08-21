@@ -1,5 +1,5 @@
-extern crate pyo3;
 extern crate csv;
+extern crate pyo3;
 
 use pyo3::prelude::*;
 use std::convert;
@@ -10,9 +10,7 @@ pub struct Record {
 
 impl convert::From<csv::StringRecord> for Record {
     fn from(record: csv::StringRecord) -> Self {
-        Record {
-            r: record
-        }
+        Record { r: record }
     }
 }
 

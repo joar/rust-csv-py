@@ -2,8 +2,10 @@
 
 extern crate csv;
 extern crate env_logger;
-#[macro_use] extern crate log;
-#[macro_use] extern crate pyo3;
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate pyo3;
 /// Used for testing
 extern crate tempfile;
 
@@ -11,11 +13,11 @@ use file_like_reader::FileLikeReader;
 use pyo3::exc;
 use pyo3::prelude::*;
 
-mod record;
 mod file_like_reader;
 mod instance;
+mod record;
 
-type RecordsIter = Iterator<Item=csv::Result<csv::StringRecord>>;
+type RecordsIter = Iterator<Item = csv::Result<csv::StringRecord>>;
 
 #[pyclass(subclass)]
 struct CSVReader {
@@ -24,7 +26,6 @@ struct CSVReader {
     // but I haven't figured out lifetimes yet.
     iter: Box<RecordsIter>,
 }
-
 
 fn records_iterator(
     readable: FileLikeReader<'static>,
@@ -47,28 +48,33 @@ fn records_iterator(
 fn get_optional_single_byte(bytes: Option<&PyBytes>, default: u8) -> PyResult<u8> {
     match bytes {
         Some(b) => get_single_byte(b),
-        None => Ok(default)
+        None => Ok(default),
     }
 }
 
+/// Extracts a single u8 from a PyBytes object
+/// If the PyBytes object contains more or less than 1 byte, an error is returned.
 fn get_single_byte(bytes: &PyBytes) -> PyResult<u8> {
     let data: &[u8] = bytes.data();
     if data.len() > 1 {
         error!("data is too long: {:?}", data);
-        return Err(PyErr::new::<exc::ValueError, _>(
-            (format!("Expected a single byte, got {:?}", data), )
-        ));
+        return Err(PyErr::new::<exc::ValueError, _>((format!(
+            "Expected a single byte, got {:?}",
+            data
+        ),)));
     }
     if data.len() < 1 {
         error!("data is too short: {:?}", data);
-        return Err(PyErr::new::<exc::ValueError, _>(
-            (format!("Expected a single byte, got {:?}", data), )
-        ));
+        return Err(PyErr::new::<exc::ValueError, _>((format!(
+            "Expected a single byte, got {:?}",
+            data
+        ),)));
     }
     return Ok(data[0]);
 }
 
 impl CSVReader {
+    /// Create a new CSReader object
     fn new<'fd>(
         token: PyToken,
         file_like: &'static PyObjectRef,
@@ -80,33 +86,23 @@ impl CSVReader {
         let gil = Python::acquire_gil();
         let py = gil.python();
 
+        let reader = FileLikeReader::new(file_like);
 
-        let reader = FileLikeReader::new(
-            file_like
-        );
-
-        let iter = match records_iterator(
-            reader,
-            delimiter,
-            terminator,
-        ) {
+        let iter = match records_iterator(reader, delimiter, terminator) {
             Ok(it) => it,
             Err(err) => {
-                return Err(PyErr::new::<exc::IOError, _>(
-                    format!("Could not parse CSV: {:?}", err)
-                ));
+                return Err(PyErr::new::<exc::IOError, _>(format!(
+                    "Could not parse CSV: {:?}",
+                    err
+                )));
             }
         };
 
-        Ok(
-            CSVReader {
-                token,
-                iter,
-            }
-        )
+        Ok(CSVReader { token, iter })
     }
 }
 
+/// CSV reader
 #[pymethods]
 impl CSVReader {
     #[new]
@@ -116,18 +112,10 @@ impl CSVReader {
         delimiter: Option<&PyBytes>,
         terminator: Option<&PyBytes>,
     ) -> PyResult<()> {
-        // I've hung these parameter extractions here to DRY.
         let delimiter_arg = get_optional_single_byte(delimiter, b',')?;
         let terminator_arg = get_optional_single_byte(terminator, b'\n')?;
 
-        obj.init(|token| {
-            CSVReader::new(
-                token,
-                file_like,
-                delimiter_arg,
-                terminator_arg
-            ).unwrap()
-        })
+        obj.init(|token| CSVReader::new(token, file_like, delimiter_arg, terminator_arg).unwrap())
     }
 }
 
@@ -149,12 +137,11 @@ impl PyIterProtocol for CSVReader {
                     let t = rec.into_tuple(py);
                     Ok(Some(t.into_object(py)))
                 }
-                Err(err) => Err(
-                    PyErr::new::<exc::IOError, _>(
-                        format!("Could not read row: {:?}", err)
-                    )
-                )
-            }
+                Err(err) => Err(PyErr::new::<exc::IOError, _>(format!(
+                    "Could not read row: {:?}",
+                    err
+                ))),
+            },
             None => {
                 info!("Reached end");
                 Ok(None)
@@ -169,16 +156,11 @@ impl Drop for CSVReader {
     }
 }
 
-
 use instance::InstanceWrapper;
 
 #[pyfunction]
-pub fn wrap_and_hello(
-    instance: &'static PyObjectRef,
-) -> PyResult<String> {
-    let wrapper = InstanceWrapper {
-        instance
-    };
+pub fn wrap_and_hello(instance: &'static PyObjectRef) -> PyResult<String> {
+    let wrapper = InstanceWrapper { instance };
     wrapper.say_hello_to_instance()
 }
 
