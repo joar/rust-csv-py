@@ -4,6 +4,7 @@ extern crate csv;
 extern crate env_logger;
 #[macro_use]
 extern crate log;
+#[macro_use]
 extern crate pyo3;
 /// Used for testing
 extern crate tempfile;
@@ -100,6 +101,8 @@ impl CSVReader {
     }
 }
 
+import_exception!(rustcsv.error, UnequalLengthsError);
+
 #[pyproto]
 impl PyIterProtocol for CSVReader {
     fn __iter__(&mut self) -> PyResult<PyObject> {
@@ -122,6 +125,9 @@ impl PyIterProtocol for CSVReader {
                     csv::ErrorKind::Io(err) => {
                         error!("IO error: {:?}", err);
                         Err(PyErr::from(err))
+                    }
+                    csv::ErrorKind::UnequalLengths { pos, expected_len, len }=> {
+                        Err(UnequalLengthsError::new(format!("Unequal lengths: Expected length {:?} got length {:?} at position {:?}", expected_len, len, pos)))
                     }
                     not_io_error => Err(exc::ValueError::new(format!(
                         "CSV parsing error: {:?}",

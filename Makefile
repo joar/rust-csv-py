@@ -21,17 +21,6 @@ develop-release:
 	env RUST_EXTENSION_DEBUG=False \
 		make develop
 
-.PHONY: benchmark
-benchmark: $(GEOLITE_EN_CSV_PATH) | build-release
-	$(PY_RUN) pytest \
-		-vv \
-		--showlocals \
-		--benchmark-timer time.process_time \
-		--benchmark-group-by 'func' \
-		--benchmark-histogram \
-		--benchmark-autosave \
-		--benchmark-only
-
 .PHONY: test
 test:
 	$(PY_RUN) pytest $(PYTEST_OPTS)
@@ -98,3 +87,18 @@ $(GEOLITE_EN_CSV_PATH): $(GEOLITE_EN_CSV_ZIP_PATH_FILE)
 		'$(GEOLITE_CITY_CSV_ZIP)' \
 		"$$(cat $<)" \
 		> $@
+
+
+# Depends on resources
+.PHONY: benchmark
+benchmark: $(GEOLITE_EN_CSV_PATH) | build-release
+	$(PY_RUN) pytest \
+		-vv \
+		--showlocals \
+		--benchmark-timer time.process_time \
+		--benchmark-group-by 'func' \
+		--benchmark-histogram \
+		--benchmark-autosave \
+		--benchmark-only
+
+

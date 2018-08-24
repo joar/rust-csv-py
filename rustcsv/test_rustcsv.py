@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 from rustcsv import CSVReader
+from rustcsv.error import UnequalLengthsError
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -38,7 +39,7 @@ def test_str_argument_instead_of_file_like():
     ],
     ids=repr,
 )
-def test_reader(csv_content, expected):
+def test_delimiter_and_terminator(csv_content, expected):
     with tempfile.NamedTemporaryFile("w+b") as writable_csv_fd:
         writable_csv_fd.write(csv_content)
         writable_csv_fd.flush()
@@ -49,6 +50,25 @@ def test_reader(csv_content, expected):
         )
         result = list(csv_reader)
         assert result == expected
+
+
+@pytest.mark.parametrize(
+    "csv_content, expected",
+    [
+        pytest.param(b"a,b\n" b"1,2", [("a", "b"), ("1", "2")]),
+        pytest.param(
+            b"a,b\n" b"1,2,3",
+            [("a", "b"), ("1", "2")],
+            marks=pytest.mark.xfail(raises=UnequalLengthsError, strict=True),
+        ),
+    ],
+    ids=repr,
+)
+def test_reader(csv_content, expected):
+    buf = io.BytesIO(csv_content)
+    csv_reader = CSVReader(buf)
+    result = list(csv_reader)
+    assert result == expected
 
 
 if __name__ == "__main__":
