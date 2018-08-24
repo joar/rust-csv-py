@@ -40,7 +40,7 @@ def test_str_argument_instead_of_file_like():
     ids=repr,
 )
 def test_delimiter_and_terminator(csv_content, expected):
-    with tempfile.NamedTemporaryFile("w+b") as writable_csv_fd:
+    with tempfile.NamedTemporaryFile("wb") as writable_csv_fd:
         writable_csv_fd.write(csv_content)
         writable_csv_fd.flush()
         csv_reader = CSVReader(
@@ -71,22 +71,10 @@ def test_reader(csv_content, expected):
     assert result == expected
 
 
-if __name__ == "__main__":
-    fd = io.BytesIO()
-    csv_content = b"x\x01y\x01z\x02" b"a\x01b\x01c\n\n\x02"
-    fd.write(csv_content)
-    fd.seek(0)
-    print(list(CSVReader(fd, delimiter=b"\x01", terminator=b"\x02")))
-
-    expected = [("x", "y", "z"), ("a", "b", "c\n\n")]
-    with tempfile.NamedTemporaryFile("w+b") as writable_csv_fd:
-        writable_csv_fd.write(csv_content)
-        writable_csv_fd.flush()
-        result = list(
-            CSVReader(
-                open(writable_csv_fd.name, "rb"),
-                delimiter=b"\x01",
-                terminator=b"\x02",
-            )
-        )
-        assert result == expected
+def test_text_io_error():
+    with tempfile.NamedTemporaryFile("wb") as writable_fd:
+        writable_fd.write(b"a,b,c\n1,2,3\n")
+        writable_fd.flush()
+        with pytest.raises(OSError):
+            # Try passing in a text-mode file-like
+            list(CSVReader(open(writable_fd.name)))

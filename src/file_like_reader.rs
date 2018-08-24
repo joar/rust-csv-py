@@ -23,25 +23,38 @@ impl PyReader {
             Ok(_) => Ok(PyReader { file_like }),
             Err(error) => Err(exc::TypeError::new(format!(
                 "Expected a file-like object, got {:?} (original error: {:?})",
-                file_like.as_ref(py), error.to_object(py).as_ref(py)
+                file_like.as_ref(py),
+                error.to_object(py).as_ref(py)
             ))),
         }
     }
 
+    #[inline]
     fn read_bytes(&self, size: usize) -> PyResult<Box<Vec<u8>>> {
         let gil = Python::acquire_gil();
         let py = gil.python();
 
         // Get the fd.read() callable
         let read_func: PyObject = self.file_like.getattr(py, "read")?;
-        debug!("read_func is {:?}", read_func.as_ref(py));
+//        debug!("read_func is {:?}", read_func.as_ref(py));
 
         // Call fd.read(size)
         let call_result = read_func.call1(py, (size,))?;
-        debug!("call_result: {:?}", &call_result);
+//        debug!("call_result: {:?}", &call_result);
 
         // Extract the PyBytes into a Box<Vec<u8>>
-        Ok(Box::new(call_result.extract(py)?))
+        match call_result.extract(py) {
+            Ok(r) => Ok(Box::new(r)),
+            Err(error) => if py.is_instance::<PyString, _>(call_result.as_ref(py))? {
+                return Err(exc::TypeError::new(format!(
+                    "The file {:?} is not open in binary mode. (Cause: {:?})",
+                    self.file_like.as_ref(py),
+                    error.to_object(py).as_ref(py),
+                )));
+            } else {
+                return Err(error);
+            },
+        }
     }
 }
 
@@ -55,11 +68,18 @@ impl Read for PyReader {
             Err(error) => {
                 let gil = Python::acquire_gil();
                 let py = gil.python();
-                error!("Could not read from {:?}: {:?}", self.file_like, error);
-                error.clone_ref(py).print(py);
+                error!(
+                    "Could not read from {:?}: {:?}",
+                    self.file_like.as_ref(py),
+                    error.to_object(py).as_ref(py)
+                );
                 Err(io::Error::new(
                     io::ErrorKind::Other,
-                    format!("Could not read from {:?}", self.file_like),
+                    format!(
+                        "Could not read from {:?}: {:?}",
+                        self.file_like.as_ref(py),
+                        error.to_object(py).as_ref(py),
+                    ),
                 ))
             }
         }

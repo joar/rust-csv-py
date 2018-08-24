@@ -126,9 +126,14 @@ impl PyIterProtocol for CSVReader {
                         error!("IO error: {:?}", err);
                         Err(PyErr::from(err))
                     }
-                    csv::ErrorKind::UnequalLengths { pos, expected_len, len }=> {
-                        Err(UnequalLengthsError::new(format!("Unequal lengths: Expected length {:?} got length {:?} at position {:?}", expected_len, len, pos)))
-                    }
+                    csv::ErrorKind::UnequalLengths {
+                        pos,
+                        expected_len,
+                        len,
+                    } => Err(UnequalLengthsError::new(format!(
+                        "Unequal lengths: Expected length {:?} got length {:?} at position {:?}",
+                        expected_len, len, pos
+                    ))),
                     not_io_error => Err(exc::ValueError::new(format!(
                         "CSV parsing error: {:?}",
                         not_io_error

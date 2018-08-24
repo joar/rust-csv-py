@@ -27,6 +27,7 @@ class FileStorage(enum.Enum):
 class ColumnType(enum.Enum):
     INTEGERS = enum.auto()
     UNICODE = enum.auto()
+    UNICODE_LONG = enum.auto()
     ASCII = enum.auto()
 
 
@@ -59,22 +60,17 @@ def generate_csv(fd: BinaryIO, rows: int, column_type: ColumnType):
     writer = csv.writer(wrapped_fd)
     for i in range(rows):
         if column_type is ColumnType.INTEGERS:
-            row = (i, i * 2, i * 3)
+            row = (i % 1000,) * 10
         elif column_type is ColumnType.UNICODE:
             row = ("aoeu", "xyz", "æ" * (i % 42))
+        elif column_type is ColumnType.UNICODE_LONG:
+            row = ("aoeu", "xyz", "æ" * (i % 42)) * 10
         elif column_type is ColumnType.ASCII:
             row = ("aoeu", "xyz", "a" * (i % 42))
         else:
             raise ValueError(f"Invalid column_type: {column_type}")
 
         writer.writerow([str(i) for i in row])
-
-    fd.flush()
-
-
-def write_large_csv(fd, rows=10_000):
-    for i in range(rows):
-        fd.write(f"{i},{i * 2},{i * 3},{'x' * (i // 2)}".encode() + b"\n")
 
     fd.flush()
 
@@ -90,7 +86,7 @@ def read_csv(impl: Implementation, path: str):
 @pytest.mark.benchmark(min_rounds=10)
 @pytest.mark.parametrize("impl", [Implementation.RUST, Implementation.STDLIB])
 @pytest.mark.parametrize("column_type", ColumnType.__members__.values())
-@pytest.mark.parametrize("row_count", [10_000, 100_000, 1_000_000])
+@pytest.mark.parametrize("row_count", [1_000, 10_000, 100_000, 1_000_000])
 def test_benchmark_read(
     benchmark: BenchmarkFixture, impl, column_type: ColumnType, row_count: int
 ):

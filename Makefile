@@ -39,7 +39,6 @@ benchmark: | develop-release
 		-vv \
 		--showlocals \
 		--benchmark-timer time.process_time \
-		$$(: --benchmark-group-by 'func') \
 		--benchmark-histogram \
 		--benchmark-autosave \
 		--benchmark-only
