@@ -9,6 +9,8 @@ cache:
 
 env:
   - RUST_VERSION=nightly
+    # Run heavy benchmarks
+  - BENCHMARK_LARGE=1
 
 install:
   - pip install pipenv

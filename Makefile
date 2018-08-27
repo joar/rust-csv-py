@@ -53,6 +53,9 @@ test:
 		--benchmark-skip \
 		$(PYTEST_TEST_OPTS)
 
+# Run heavy benchmarks, 1 = True, 0 = False
+BENCHMARK_LARGE ?= 0
+
 .PHONY: benchmark
 benchmark: | develop-release
 	# Run benchmarks
