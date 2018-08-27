@@ -6,15 +6,25 @@ use std::io;
 use std::io::Read;
 use std::io::Write;
 
-/// Wraps a Python file-like readable object.
-/// The file-like object must be in binary mode
+/// Wraps a "[binary file]" [`PyObject`].
+///
+/// The main purpose of this wrapper is to implement the [std::io::Read] trait
+/// so that [csv::Reader] can read directly from a Python "[binary file]" object.
+///
+///  [binary file]: https://docs.python.org/3/glossary.html#term-binary-file
 #[derive(Debug)]
 pub struct PyReader {
     file_like: PyObject,
 }
 
 impl PyReader {
-    pub fn from_ref(file_like: PyObject) -> PyResult<PyReader> {
+    /// Create a new [PyReader] from a "[binary file]" [PyObject]
+    ///
+    /// # Arguments
+    ///
+    /// * `file_like` - [binary file] PyObject, will be quack-tested by getting
+    /// the `read` Python attribute from it.
+    pub fn from_object(file_like: PyObject) -> PyResult<PyReader> {
         let gil = Python::acquire_gil();
         let py = gil.python();
         info!("Creating from file_like_ref {:?}", file_like.as_ref(py));
@@ -29,18 +39,24 @@ impl PyReader {
         }
     }
 
+    /// Reads bytes from the the [binary file] [PyObject] [PyReader::file_like]
+    ///
+    /// The method acquires the GIL, then calls `getattr(file_like,
+    ///
+    /// # Arguments
+    ///
+    /// - `size` - Maximum number of bytes to read.
     #[inline]
-    fn read_bytes(&self, size: usize) -> PyResult<Box<Vec<u8>>> {
+    pub fn read_bytes(&self, size: usize) -> PyResult<Box<Vec<u8>>> {
         let gil = Python::acquire_gil();
         let py = gil.python();
 
         // Get the fd.read() callable
         let read_func: PyObject = self.file_like.getattr(py, "read")?;
-//        debug!("read_func is {:?}", read_func.as_ref(py));
+        //        debug!("read_func is {:?}", read_func.as_ref(py));
 
         // Call fd.read(size)
         let call_result = read_func.call1(py, (size,))?;
-//        debug!("call_result: {:?}", &call_result);
 
         // Extract the PyBytes into a Box<Vec<u8>>
         match call_result.extract(py) {
@@ -59,6 +75,7 @@ impl PyReader {
 }
 
 impl Read for PyReader {
+    /// Reads bytes from the [`PyReader.file_like`] [`PyObject`] via [`PyReader.read_bytes`].
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         debug!("buf.len(): {:?}", buf.len());
         match self.read_bytes(buf.len()) {

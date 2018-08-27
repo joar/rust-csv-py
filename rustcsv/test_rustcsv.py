@@ -1,11 +1,13 @@
+import contextlib
+import csv
 import io
 import logging
 import tempfile
-from pathlib import Path
+from typing import Tuple, Iterable, Union
 
 import pytest
 from rustcsv import CSVReader
-from rustcsv.error import UnequalLengthsError
+import rustcsv.error
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -24,8 +26,13 @@ def configure_logging():
     logger.setLevel(logging.DEBUG)
 
 
-def test_str_argument_instead_of_file_like():
-    with pytest.raises(TypeError, message="str has no attribute 'read'"):
+def test_from_path_not_found():
+    with pytest.raises(
+        FileNotFoundError,
+        message=(
+            "First argument interpreted as path, but the path does not exist."
+        ),
+    ):
         CSVReader("does-not-exist")
 
 
@@ -59,7 +66,9 @@ def test_delimiter_and_terminator(csv_content, expected):
         pytest.param(
             b"a,b\n" b"1,2,3",
             [("a", "b"), ("1", "2")],
-            marks=pytest.mark.xfail(raises=UnequalLengthsError, strict=True),
+            marks=pytest.mark.xfail(
+                raises=rustcsv.error.UnequalLengthsError, strict=True
+            ),
         ),
     ],
     ids=repr,
@@ -78,3 +87,32 @@ def test_text_io_error():
         with pytest.raises(OSError):
             # Try passing in a text-mode file-like
             list(CSVReader(open(writable_fd.name)))
+
+
+@contextlib.contextmanager
+def byte_records(records: Union[bytes, Iterable[bytes]]):
+    with tempfile.NamedTemporaryFile("wb") as writable_fd:
+        if isinstance(records, bytes):
+            records = [records]
+        for record in records:
+            writable_fd.write(record + b"\n")
+        writable_fd.flush()
+        yield open(writable_fd.name, "rb")
+
+
+def test_raises_utf8error():
+    with byte_records(
+        [
+            b"valid UTF-8,invalid UTF-8,",
+            b"valid: \xf0\x9f\x90\x8d,invalid: \xa0\xa1,",
+        ]
+    ) as fd:
+        with pytest.raises(rustcsv.error.UTF8Error, message="") as exc_info:
+            result = list(CSVReader(fd))
+
+        utf8_error: rustcsv.error.UTF8Error = exc_info.value
+
+        assert utf8_error.position is not None
+        assert utf8_error.position == rustcsv.error.Position(
+            byte=27, line=2, record=1
+        )

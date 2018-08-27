@@ -9,7 +9,7 @@ extern crate pyo3;
 /// Used for testing
 extern crate tempfile;
 
-use file_like_reader::PyReader;
+pub use file_like_reader::PyReader;
 use pyo3::exc;
 use pyo3::prelude::*;
 
@@ -18,30 +18,55 @@ mod record;
 
 type RecordsIter = Iterator<Item = csv::Result<csv::StringRecord>>;
 
+/// Handles [CSVReader]'s reading from either a filesystem path or "`BinaryIO`" [PyObject]
+pub enum CSVSource {
+    /// A file-system path
+    Path(String),
+    /// A [PyReader] wrapping a Python file-like "`BinaryIO`" [PyObject].
+    Readable(PyReader),
+}
+
+/// `#[pyclass]` struct, the CSV reader class
 #[pyclass(subclass)]
-struct CSVReader {
+pub struct CSVReader {
     token: PyToken,
     // It would be nice to have a reference to csv::Reader here,
     // but I haven't figured out lifetimes yet.
     iter: Box<RecordsIter>,
 }
 
-fn records_iterator(
-    readable: PyReader,
+/// Builds a [`csv::Reader`] and returns a boxed [`Iterator`] of the
+/// records from [`csv::Reader::into_records`].
+///
+/// # Arguments
+///
+/// * `source` - [CSVSource] to read the CSV from.
+/// * `delimiter` - CSV field separator.
+/// * `terminator` - CSV record separator.
+pub fn make_records_iterator(
+    source: CSVSource,
     delimiter: u8,
     terminator: u8,
 ) -> csv::Result<Box<RecordsIter>> {
-    let rdr = csv::ReaderBuilder::new()
+    let mut x = csv::ReaderBuilder::new();
+    let builder = x
         .delimiter(delimiter)
         .has_headers(false)
-        .terminator(csv::Terminator::Any(terminator))
-        .from_reader(readable);
+        .terminator(csv::Terminator::Any(terminator));
 
-    // XXX: I'm not sure that this doesn't read all the records into memory.
-    // If that is the case it would explain why I don't need to confront
-    // lifetimes in my struct.
-    let iter: Box<RecordsIter> = Box::new(rdr.into_records());
-    return Ok(iter);
+    use CSVSource::{Path, Readable};
+    {
+        match source {
+            Readable(readable) => {
+                let rdr = builder.from_reader(readable);
+                Ok(Box::new(rdr.into_records()))
+            }
+            Path(path) => {
+                let rdr = builder.from_path(path)?;
+                Ok(Box::new(rdr.into_records()))
+            }
+        }
+    }
 }
 
 fn get_optional_single_byte(bytes: Option<&PyBytes>, default: u8) -> PyResult<u8> {
@@ -72,36 +97,57 @@ fn get_single_byte(bytes: &PyBytes) -> PyResult<u8> {
     return Ok(data[0]);
 }
 
-/// CSV reader
+/// Implements the Python type methods for `CSVReader`
 #[pymethods]
 impl CSVReader {
+    /// Creates a new CSVReader instance
     #[new]
-    fn __new__(
+    pub fn __new__(
         obj: &PyRawObject,
-        file_like_ref: &'static PyObjectRef,
+        path_or_fd: &'static PyObjectRef,
         delimiter: Option<&PyBytes>,
         terminator: Option<&PyBytes>,
     ) -> PyResult<()> {
         let gil = Python::acquire_gil();
         let py = gil.python();
 
-        let file_like = file_like_ref.to_object(py);
-
         let delimiter_arg = get_optional_single_byte(delimiter, b',')?;
         let terminator_arg = get_optional_single_byte(terminator, b'\n')?;
 
-        let reader = PyReader::from_ref(file_like)?;
-        match records_iterator(reader, delimiter_arg, terminator_arg) {
+        let path_or_fd_obj = path_or_fd.to_object(py);
+
+        let source = if py.is_instance::<PyString, _>(path_or_fd_obj.as_ref(py))? {
+            CSVSource::Path(path_or_fd_obj.extract(py)?)
+        } else {
+            CSVSource::Readable(PyReader::from_ref(path_or_fd_obj)?)
+        };
+
+        match make_records_iterator(source, delimiter_arg, terminator_arg) {
             Ok(iter) => {
                 obj.init(|token| CSVReader { token, iter });
                 Ok(())
             }
-            Err(err) => Err(exc::IOError::new(format!("Could not parse CSV: {:?}", err))),
+            Err(error) => match error.into_kind() {
+                csv::ErrorKind::Io(err) => Err(err.into()),
+                err => Err(exc::IOError::new(format!("Could not parse CSV: {:?}", err))),
+            },
         }
     }
 }
 
 import_exception!(rustcsv.error, UnequalLengthsError);
+import_exception!(rustcsv.error, UTF8Error);
+
+/// Create a Python rustcsv.error.Position object from a csv::Position
+pub fn make_error_position(pos: csv::Position) -> PyResult<PyObject> {
+    let gil = Python::acquire_gil();
+    let py = gil.python();
+    let errors_mod = py.import("rustcsv.error")?;
+    let position_type = errors_mod.get("Position")?;
+    Ok(position_type
+        .to_object(py)
+        .call1(py, (pos.byte(), pos.line(), pos.record()))?)
+}
 
 #[pyproto]
 impl PyIterProtocol for CSVReader {
@@ -110,6 +156,7 @@ impl PyIterProtocol for CSVReader {
         Ok(self.into())
     }
 
+    ///
     fn __next__(&mut self) -> PyResult<Option<PyObject>> {
         debug!("__next__");
         match self.iter.next() {
@@ -126,14 +173,30 @@ impl PyIterProtocol for CSVReader {
                         error!("IO error: {:?}", err);
                         Err(PyErr::from(err))
                     }
+                    csv::ErrorKind::Utf8 { pos, err } => {
+                        let position = match pos {
+                            Some(p) => Some(make_error_position(p.clone())?),
+                            None => None,
+                        };
+                        Err(UTF8Error::new((format!("{:?}", err), position)))
+                    }
                     csv::ErrorKind::UnequalLengths {
                         pos,
                         expected_len,
                         len,
-                    } => Err(UnequalLengthsError::new(format!(
-                        "Unequal lengths: Expected length {:?} got length {:?} at position {:?}",
-                        expected_len, len, pos
-                    ))),
+                    } => {
+                        let position = match pos {
+                            Some(p) => Some(make_error_position(p.clone())?),
+                            None => None,
+                        };
+                        Err(UnequalLengthsError::new((
+                            format!(
+                                "Unequal lengths: Expected length {:?} got length {:?}",
+                                expected_len, len,
+                            ),
+                            position,
+                        )))
+                    }
                     not_io_error => Err(exc::ValueError::new(format!(
                         "CSV parsing error: {:?}",
                         not_io_error
@@ -141,7 +204,7 @@ impl PyIterProtocol for CSVReader {
                 },
             },
             None => {
-                info!("Reached end");
+                debug!("Reached end");
                 Ok(None)
             }
         }
@@ -150,7 +213,7 @@ impl PyIterProtocol for CSVReader {
 
 impl Drop for CSVReader {
     fn drop(&mut self) {
-        info!("Dropping CSVReader")
+        debug!("Dropping CSVReader")
     }
 }
 
@@ -159,7 +222,7 @@ impl Drop for CSVReader {
 /// PyO3 + rust-csv
 /// An exploration in reading CSV as fast as possible from Python.
 #[pymodinit]
-fn _rustcsv(_py: Python, m: &PyModule) -> PyResult<()> {
+pub fn _rustcsv(_py: Python, m: &PyModule) -> PyResult<()> {
     env_logger::init();
     m.add_class::<CSVReader>()?;
     Ok(())

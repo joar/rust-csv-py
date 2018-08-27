@@ -14,7 +14,7 @@ from rustcsv import CSVReader
 _log = logging.getLogger(__name__)
 
 
-class Implementation(enum.Enum):
+class Parser(enum.Enum):
     STDLIB = enum.auto()
     RUST = enum.auto()
 
@@ -31,19 +31,19 @@ class ColumnType(enum.Enum):
     ASCII = enum.auto()
 
 
-def get_reader(impl: Implementation, path: str) -> Iterable[Iterable[str]]:
-    if impl is Implementation.STDLIB:
+def get_reader(impl: Parser, path: str) -> Iterable[Iterable[str]]:
+    if impl is Parser.STDLIB:
         return csv.reader(open(path, "r"))
-    elif impl is Implementation.RUST:
+    elif impl is Parser.RUST:
         return CSVReader(open(path, "rb"))
     else:
         raise ValueError(f"Invalid impl: {impl}")
 
 
-def wrap_fd(impl: Implementation, fd: BinaryIO, write: bool = False):
-    if impl is Implementation.RUST:
+def wrap_fd(impl: Parser, fd: BinaryIO, write: bool = False):
+    if impl is Parser.RUST:
         return fd
-    elif impl is Implementation.STDLIB:
+    elif impl is Parser.STDLIB:
         # The standard library must have a text-mode file-like.
         if fd.name:
             mode = "w" if write else "r"
@@ -56,7 +56,7 @@ def wrap_fd(impl: Implementation, fd: BinaryIO, write: bool = False):
 
 
 def generate_csv(fd: BinaryIO, rows: int, column_type: ColumnType):
-    wrapped_fd = wrap_fd(Implementation.STDLIB, fd, write=True)
+    wrapped_fd = wrap_fd(Parser.STDLIB, fd, write=True)
     writer = csv.writer(wrapped_fd)
     for i in range(rows):
         if column_type is ColumnType.INTEGERS:
@@ -75,7 +75,7 @@ def generate_csv(fd: BinaryIO, rows: int, column_type: ColumnType):
     fd.flush()
 
 
-def read_csv(impl: Implementation, path: str):
+def read_csv(impl: Parser, path: str):
     i = 0
     reader = get_reader(impl, path)
     for i, row in enumerate(reader, start=1):
@@ -84,9 +84,22 @@ def read_csv(impl: Implementation, path: str):
 
 
 @pytest.mark.benchmark(min_rounds=10)
-@pytest.mark.parametrize("impl", [Implementation.RUST, Implementation.STDLIB])
+@pytest.mark.parametrize("impl", [Parser.RUST, Parser.STDLIB])
 @pytest.mark.parametrize("column_type", ColumnType.__members__.values())
-@pytest.mark.parametrize("row_count", [1_000, 10_000, 100_000, 1_000_000])
+@pytest.mark.parametrize(
+    "row_count",
+    [
+        1_000,
+        10_000,
+        100_000,
+        pytest.param(
+            1_000_000,
+            marks=pytest.mark.skipif(
+                "not bool(int(os.environ.get('BENCHMARK_LARGE', 0))) "
+            ),
+        ),
+    ],
+)
 def test_benchmark_read(
     benchmark: BenchmarkFixture, impl, column_type: ColumnType, row_count: int
 ):
@@ -94,7 +107,8 @@ def test_benchmark_read(
     with tempfile.NamedTemporaryFile("wb") as writable_csv_fd:
         args = (writable_csv_fd.name,)
         generate_csv(writable_csv_fd, row_count, column_type)
-        # read_row_count = benchmark(implementation, *args)
-        read_row_count = benchmark(partial(read_csv, impl), *args)
+        read_row_count = benchmark.pedantic(
+            partial(read_csv, impl), args, iterations=10
+        )
 
     assert read_row_count == row_count
