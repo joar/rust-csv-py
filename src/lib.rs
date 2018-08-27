@@ -26,12 +26,13 @@ pub enum CSVSource {
     Readable(PyReader),
 }
 
-/// `#[pyclass]` struct, the CSV reader class
+/// The `CSVReader` Python class
 #[pyclass(subclass)]
 pub struct CSVReader {
     token: PyToken,
     // It would be nice to have a reference to csv::Reader here,
     // but I haven't figured out lifetimes yet.
+    /// Iterator over the parsed records
     iter: Box<RecordsIter>,
 }
 
@@ -101,6 +102,15 @@ fn get_single_byte(bytes: &PyBytes) -> PyResult<u8> {
 #[pymethods]
 impl CSVReader {
     /// Creates a new CSVReader instance
+    ///
+    /// - `path_or_fd` - Either a string path to a file or a [binary file].
+    /// - `delimiter` - CSV field separator
+    /// - `terminator` - CSV field separator
+    ///
+    /// Note: The `delimiter` and `terminator` [PyBytes] objects must only
+    /// contain a single byte.
+    ///
+    ///  [binary file]: https://docs.python.org/3/glossary.html#term-binary-file
     #[new]
     pub fn __new__(
         obj: &PyRawObject,
@@ -117,9 +127,11 @@ impl CSVReader {
         let path_or_fd_obj = path_or_fd.to_object(py);
 
         let source = if py.is_instance::<PyString, _>(path_or_fd_obj.as_ref(py))? {
+            // Treat path_or_fd_obj as a path
             CSVSource::Path(path_or_fd_obj.extract(py)?)
         } else {
-            CSVSource::Readable(PyReader::from_ref(path_or_fd_obj)?)
+            // Treat path_or_fd_obj as a "binary file"
+            CSVSource::Readable(PyReader::from_object(path_or_fd_obj)?)
         };
 
         match make_records_iterator(source, delimiter_arg, terminator_arg) {
@@ -156,7 +168,7 @@ impl PyIterProtocol for CSVReader {
         Ok(self.into())
     }
 
-    ///
+    /// Read the next record from [CSVReader::iter]
     fn __next__(&mut self) -> PyResult<Option<PyObject>> {
         debug!("__next__");
         match self.iter.next() {
