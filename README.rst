@@ -46,5 +46,5 @@ hand, I might have an ace up my sleeve if I figure out how to convert
 References
 ================================================================================
 
--   <https://github.com/python/cpython/blob/master/Modules/_csv.c>
--   <https://pyo3.rs/v0.4.1/class.html>
+-   `<https://github.com/python/cpython/blob/master/Modules/_csv.c>`_
+-   `<https://pyo3.rs/v0.4.1/class.html>`_
