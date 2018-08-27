@@ -3,6 +3,10 @@ python:
   - "3.6"
 dist: xenial
 
+cache:
+  # caches $HOME/.cargo and $TRAVIS_BUILD_DIR/target
+  - cargo
+
 env:
   - RUST_VERSION=nightly
 
@@ -11,7 +15,7 @@ install:
   - pipenv install --dev
   - curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUST_VERSION
   - export PATH="$HOME/.cargo/bin:$PATH"
-  - make build-release
+  - make develop-release
 
 script:
   - make test benchmark

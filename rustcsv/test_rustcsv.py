@@ -1,9 +1,13 @@
+import contextlib
+import csv
+import io
 import logging
 import tempfile
-from pathlib import Path
+from typing import Tuple, Iterable, Union
 
 import pytest
 from rustcsv import CSVReader
+import rustcsv.error
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -22,20 +26,13 @@ def configure_logging():
     logger.setLevel(logging.DEBUG)
 
 
-@pytest.fixture()
-def applelike_csv_bytes() -> bytes:
-    return b"x\x01y\x01z\x02" b"a\x01b\x01c\n\n\x02"
-
-
-@pytest.fixture()
-def applelike_csv_file(applelike_csv_bytes) -> Path:
-    with tempfile.NamedTemporaryFile("w+b") as writable_csv_fd:
-        writable_csv_fd.write(applelike_csv_bytes)
-        yield Path(writable_csv_fd.name)
-
-
-def test_file_does_not_exist():
-    with pytest.raises(IOError):
+def test_from_path_not_found():
+    with pytest.raises(
+        FileNotFoundError,
+        message=(
+            "First argument interpreted as path, but the path does not exist."
+        ),
+    ):
         CSVReader("does-not-exist")
 
 
@@ -49,20 +46,73 @@ def test_file_does_not_exist():
     ],
     ids=repr,
 )
-def test_reader(csv_content, expected):
-    with tempfile.NamedTemporaryFile("w+b") as writable_csv_fd:
+def test_delimiter_and_terminator(csv_content, expected):
+    with tempfile.NamedTemporaryFile("wb") as writable_csv_fd:
         writable_csv_fd.write(csv_content)
         writable_csv_fd.flush()
-        result = list(
-            CSVReader(
-                writable_csv_fd.name, delimiter=b"\x01", terminator=b"\x02"
-            )
+        csv_reader = CSVReader(
+            open(writable_csv_fd.name, "rb"),
+            delimiter=b"\x01",
+            terminator=b"\x02",
         )
+        result = list(csv_reader)
         assert result == expected
 
 
-@pytest.mark.skip()
-def test_repr(applelike_csv_file: Path):
-    reader = CSVReader(str(applelike_csv_file))
-    reader_repr = repr(reader)
-    assert reader_repr == ""
+@pytest.mark.parametrize(
+    "csv_content, expected",
+    [
+        pytest.param(b"a,b\n" b"1,2", [("a", "b"), ("1", "2")]),
+        pytest.param(
+            b"a,b\n" b"1,2,3",
+            [("a", "b"), ("1", "2")],
+            marks=pytest.mark.xfail(
+                raises=rustcsv.error.UnequalLengthsError, strict=True
+            ),
+        ),
+    ],
+    ids=repr,
+)
+def test_reader(csv_content, expected):
+    buf = io.BytesIO(csv_content)
+    csv_reader = CSVReader(buf)
+    result = list(csv_reader)
+    assert result == expected
+
+
+def test_text_io_error():
+    with tempfile.NamedTemporaryFile("wb") as writable_fd:
+        writable_fd.write(b"a,b,c\n1,2,3\n")
+        writable_fd.flush()
+        with pytest.raises(OSError):
+            # Try passing in a text-mode file-like
+            list(CSVReader(open(writable_fd.name)))
+
+
+@contextlib.contextmanager
+def byte_records(records: Union[bytes, Iterable[bytes]]):
+    with tempfile.NamedTemporaryFile("wb") as writable_fd:
+        if isinstance(records, bytes):
+            records = [records]
+        for record in records:
+            writable_fd.write(record + b"\n")
+        writable_fd.flush()
+        yield open(writable_fd.name, "rb")
+
+
+def test_raises_utf8error():
+    with byte_records(
+        [
+            b"valid UTF-8,invalid UTF-8,",
+            b"valid: \xf0\x9f\x90\x8d,invalid: \xa0\xa1,",
+        ]
+    ) as fd:
+        with pytest.raises(rustcsv.error.UTF8Error, message="") as exc_info:
+            result = list(CSVReader(fd))
+
+        utf8_error: rustcsv.error.UTF8Error = exc_info.value
+
+        assert utf8_error.position is not None
+        assert utf8_error.position == rustcsv.error.Position(
+            byte=27, line=2, record=1
+        )

@@ -1,76 +1,114 @@
 import csv
+import enum
+import io
+import logging
 import tempfile
 from functools import partial
+from typing import Iterable, BinaryIO
 
 import pytest
 from pytest_benchmark.fixture import BenchmarkFixture
+
 from rustcsv import CSVReader
 
-
-def process_row(row):
-    a, b, c, *rest = row
-    assert int(a) + int(b) == int(c)
+_log = logging.getLogger(__name__)
 
 
-def impl_read_rust(path):
-    for row in CSVReader(str(path)):
-        yield row
+class Parser(enum.Enum):
+    STDLIB = enum.auto()
+    RUST = enum.auto()
 
 
-def impl_read_stdlib(path):
-    for row in csv.reader(open(path)):
-        yield row
+class FileStorage(enum.Enum):
+    DISK = enum.auto()
+    MEMORY = enum.auto()
 
 
-def count_rows(reader_impl, path):
-    i = 0
-    for i, row in enumerate(reader_impl(path), start=1):
-        pass
-    return i
+class ColumnType(enum.Enum):
+    INTEGERS = enum.auto()
+    UNICODE = enum.auto()
+    UNICODE_LONG = enum.auto()
+    ASCII = enum.auto()
 
 
-@pytest.mark.parametrize("impl_read", [impl_read_rust, impl_read_stdlib])
-def test_read_geolite_city_en_csv(benchmark: BenchmarkFixture, impl_read):
-    result = benchmark(
-        partial(count_rows, impl_read, "res/csv/geolite-city-en.csv")
-    )
-    assert result is not None
+def get_reader(impl: Parser, path: str) -> Iterable[Iterable[str]]:
+    if impl is Parser.STDLIB:
+        return csv.reader(open(path, "r"))
+    elif impl is Parser.RUST:
+        return CSVReader(open(path, "rb"))
+    else:
+        raise ValueError(f"Invalid impl: {impl}")
 
 
-def impl_rust(path):
-    i = 0
-    for i, row in enumerate(CSVReader(str(path)), start=1):
-        process_row(row)
-    return i
+def wrap_fd(impl: Parser, fd: BinaryIO, write: bool = False):
+    if impl is Parser.RUST:
+        return fd
+    elif impl is Parser.STDLIB:
+        # The standard library must have a text-mode file-like.
+        if fd.name:
+            mode = "w" if write else "r"
+            _log.info("Opening %r in mode %r", fd.name, mode)
+            return open(fd.name, mode)
+        else:
+            return io.TextIOWrapper(fd)
+    else:
+        raise ValueError(f"Invalid impl: {impl}")
 
 
-def impl_stdlib(path):
-    i = 0
-    for i, row in enumerate(csv.reader(open(path)), start=1):
-        process_row(row)
-    return i
-
-
-def write_large_csv(fd, rows=10_000):
+def generate_csv(fd: BinaryIO, rows: int, column_type: ColumnType):
+    wrapped_fd = wrap_fd(Parser.STDLIB, fd, write=True)
+    writer = csv.writer(wrapped_fd)
     for i in range(rows):
-        fd.write(f"{i},{i * 2},{i * 3},a".encode() + b"\n")
+        if column_type is ColumnType.INTEGERS:
+            row = (i % 1000,) * 10
+        elif column_type is ColumnType.UNICODE:
+            row = ("aoeu", "xyz", "æ" * (i % 42))
+        elif column_type is ColumnType.UNICODE_LONG:
+            row = ("aoeu", "xyz", "æ" * (i % 42)) * 10
+        elif column_type is ColumnType.ASCII:
+            row = ("aoeu", "xyz", "a" * (i % 42))
+        else:
+            raise ValueError(f"Invalid column_type: {column_type}")
+
+        writer.writerow([str(i) for i in row])
 
     fd.flush()
 
 
-@pytest.mark.parametrize("implementation", [impl_rust, impl_stdlib])
-def test_read_csv_100_000(benchmark: BenchmarkFixture, implementation):
-    rounds = 20
-    row_count = 100_000
+def read_csv(impl: Parser, path: str):
+    i = 0
+    reader = get_reader(impl, path)
+    for i, row in enumerate(reader, start=1):
+        pass
+    return i
+
+
+@pytest.mark.benchmark(min_rounds=10)
+@pytest.mark.parametrize("impl", [Parser.RUST, Parser.STDLIB])
+@pytest.mark.parametrize("column_type", ColumnType.__members__.values())
+@pytest.mark.parametrize(
+    "row_count",
+    [
+        1_000,
+        10_000,
+        100_000,
+        pytest.param(
+            1_000_000,
+            marks=pytest.mark.skipif(
+                "not bool(int(os.environ.get('BENCHMARK_LARGE', 0))) "
+            ),
+        ),
+    ],
+)
+def test_benchmark_read(
+    benchmark: BenchmarkFixture, impl, column_type: ColumnType, row_count: int
+):
+    benchmark.group = f"test_benchmark_read-{column_type}-{row_count}"
     with tempfile.NamedTemporaryFile("wb") as writable_csv_fd:
         args = (writable_csv_fd.name,)
-        # write_large_csv(writable_csv_fd, row_count)
-        # read_row_count = benchmark(implementation, *args)
+        generate_csv(writable_csv_fd, row_count, column_type)
         read_row_count = benchmark.pedantic(
-            implementation,
-            args,
-            setup=partial(write_large_csv, writable_csv_fd, row_count),
-            rounds=rounds,
+            partial(read_csv, impl), args, iterations=10
         )
 
-    assert read_row_count == row_count * rounds
+    assert read_row_count == row_count

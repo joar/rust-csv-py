@@ -42,3 +42,9 @@ You'll have to run it yourself, here's how-ish:
 **Spoiler:** It's about tied on my machine. Python 3's |csv|_ has the upper
 hand, I might have an ace up my sleeve if I figure out how to convert
 ``csv::StringRecord`` straight to ``pyo3::PyTuple`` instead of ``pyo3::PyList``.
+
+References
+================================================================================
+
+-   <https://github.com/python/cpython/blob/master/Modules/_csv.c>
+-   <https://pyo3.rs/v0.4.1/class.html>

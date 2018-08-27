@@ -73,6 +73,7 @@ setup(
             "rustcsv._rustcsv", "Cargo.toml", debug=RUST_EXTENSION_DEBUG
         )
     ],
+    entry_points={"console_scripts": ["rustcsv=rustcsv.__main__:cli"]},
     tests_require=tests_require,
     setup_requires=setup_requires,
     install_requires=install_requires,

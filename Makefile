@@ -1,77 +1,67 @@
-RUST_EXTENSION_DEBUG ?= True
+# Prefix to use when running python code.
 PY_RUN ?= pipenv run
-PYTEST_OPTS ?= -vvl --benchmark-skip
-GEOLITE_EN_CSV_PATH = res/csv/geolite-city-en.csv
+# Triggers the --release flag on or off when setup.py is building the rust
+# extension module.
+RUST_EXTENSION_DEBUG ?= True
+RUSTFLAGS ?= target-cpu=native
 
 .PHONY: default
 default:
 	# Nothing
 
-.PHONY: develop
-develop:
-	$(PY_RUN) python setup.py develop
-
-.PHONY: build-release
-build-release:
-	$(PY_RUN) env RUST_EXTENSION_DEBUG=False RUSTFLAGS="-C target-cpu=native" \
-		python setup.py develop
-
-.PHONY: benchmark
-benchmark: $(GEOLITE_EN_CSV_PATH) | build-release
-	$(PY_RUN) pytest \
-		-vv \
-		--showlocals \
-		--benchmark-histogram \
-		--benchmark-autosave \
-		--benchmark-only
-
-.PHONY: test
-test:
-	$(PY_RUN) pytest $(PYTEST_OPTS)
-
 .PHONY: black
 black:
+	# Format python code
 	$(PY_RUN) black ./rustcsv
 
 .PHONY: isort
 isort:
+	# Sort imports in python code
 	$(PY_RUN) isort -y
 
-# Benchmarking data
-# ------------------------------------------------------------------------------
+.PHONY: develop
+develop:
+	$(PY_RUN) python setup.py develop
 
-GEOLITE_CITY_CSV_ZIP_URL = http://geolite.maxmind.com/download/geoip/database/GeoLite2-City-CSV.zip
-GEOLITE_CITY_CSV_ZIP = res/csv/GeoLite2-City-CSV.zip
-GEOLITE_EN_CSV_ZIP_PATH_FILE = $(GEOLITE_CITY_CSV_ZIP).en-csv.path.txt
-GEOLITE_EN_CSV_ZIP_NAME = GeoLite2-City-Locations-en.csv
+.PHONY: develop-debug
+develop-debug:
+	make \
+		RUST_EXTENSION_DEBUG=True \
+		develop
 
-.PHONY: clean-csv-downloaded
-clean-csv-downloaded:
-	rm -f '$(GEOLITE_CITY_CSV_ZIP)'
+.PHONY: develop-release
+develop-release:
+	make \
+		RUST_EXTENSION_DEBUG=False \
+		develop
 
-.PHONY: clean-csv-derived
-clean-csv-derived:
-	find res/csv -type f \
-		| grep -v '$(GEOLITE_CITY_CSV_ZIP)$$' \
-		| xargs -r rm -v
+# pytest options
+PYTEST_OPTS ?= -vv --showlocals
+# additional pytest options when running tests
+PYTEST_TEST_OPTS ?=
+# additional pytest options when running benchmarks
+PYTEST_BENCHMARK_OPTS ?=
 
-$(GEOLITE_CITY_CSV_ZIP):
-	curl \
-		--location \
-		'$(GEOLITE_CITY_CSV_ZIP_URL)' \
-		> $@
+PYTEST_BENCHMARK_TIMER ?= time.process_time
+PYTEST_BENCHMARK_SORT ?= fullname
 
-$(GEOLITE_EN_CSV_ZIP_PATH_FILE): $(GEOLITE_CITY_CSV_ZIP)
-	# Extract the path that GeoLite2-City-Locations-en.csv has inside the zip
-	# archive since the file is inside a date-stamped directory
-	# (e.g. GeoLite2-City-CSV_20180703/GeoLite2-City-Locations-en.csv).
-	unzip -lqq '$<' \
-		| awk '{print $$4}' \
-		| grep '$(GEOLITE_EN_CSV_ZIP_NAME)' \
-		> $@
+.PHONY: test
+test:
+	# Run python tests
+	$(PY_RUN) pytest \
+		$(PYTEST_OPTS) \
+		--benchmark-skip \
+		$(PYTEST_TEST_OPTS)
 
-$(GEOLITE_EN_CSV_PATH): $(GEOLITE_EN_CSV_ZIP_PATH_FILE)
-	unzip -p \
-		'$(GEOLITE_CITY_CSV_ZIP)' \
-		"$$(cat $<)" \
-		> $@
+.PHONY: benchmark
+benchmark: | develop-release
+	# Run benchmarks
+	$(PY_RUN) pytest \
+		$(PYTEST_OPTS) \
+		--benchmark-only \
+		--benchmark-timer $(PYTEST_BENCHMARK_TIMER) \
+		--benchmark-sort $(PYTEST_BENCHMARK_SORT) \
+		--benchmark-histogram \
+		--benchmark-autosave
+
+
