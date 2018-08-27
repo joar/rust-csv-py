@@ -10,12 +10,19 @@
 .. |travis-badge| image:: https://travis-ci.com/joar/rust-csv-py.svg?branch=master
 .. _travis-badge: https://travis-ci.com/joar/rust-csv-py
 
+.. _`Travis CI project`: https://travis-ci.com/joar/rust-csv-py
+
 ################################################################################
 |rust-csv|_ + |PyO3|_ = Not much slower than |csv|_ :tada:
 ################################################################################
 
 |travis-badge|_
 
+.. contents:: Contents
+    :backlinks: none
+    :local:
+
+================================================================================
 BIG DISCLAIMER
 ================================================================================
 
@@ -23,26 +30,74 @@ BIG DISCLAIMER
 -   I'm not a production-ready Rust programmer.
 -   Python 3's |csv|_ stdlib module is pretty %#!& fast.
 
+================================================================================
+Development
+================================================================================
+
+--------------------------------------------------------------------------------
+Development Installation
+--------------------------------------------------------------------------------
+
+Install and build the extension locally from e.g. a git checkout.
+
+Requirements
+================================================================================
+
+-   `Pipenv <http://pipenv.org/>`_.
+-   Python 3.6.
+-   Rust and Cargo nightly (1.30 as of now) - `<https://rustup.rs/>`_.
+
+Install Python dependencies
+================================================================================
+
+.. code-block:: sh
+
+    pipenv install --dev
+
+Build the ``rustcsv._rustcsv`` extension
+================================================================================
+
+Either
+
+1.  Using the "debug" cargo profile, or
+
+    .. code-block:: sh
+
+        make develop-debug
+
+2.  Using the "release" cargo profile
+
+    .. code-block:: sh
+
+        make develop-release
+
+Run tests
+================================================================================
+
+.. code-block:: sh
+
+    make test
+
+
+Run benchmarks
+================================================================================
+
+.. code-block:: sh
+
+    make benchmark
+
+Note: ``make benchmark`` will always build the extension using the "release"
+cargo profile.
+
+================================================================================
 Benchmarks
 ================================================================================
 
-You'll have to run it yourself, here's how-ish:
+Benchmarks are executed as the last step in the `Travis CI project`_.
 
-1.  Figure out the dependencies and install them, in my case it's:
+You can also run it yourself, see `Development`_ and `Run benchmarks`_.
 
-    -   cargo + rust as required by |rust-csv|_ and |pyo3|_.
-    -   Python 3.6 and pipenv
-
-2.
-
-    .. code-block:: console
-
-        $ make benchmark
-
-**Spoiler:** It's about tied on my machine. Python 3's |csv|_ has the upper
-hand, I might have an ace up my sleeve if I figure out how to convert
-``csv::StringRecord`` straight to ``pyo3::PyTuple`` instead of ``pyo3::PyList``.
-
+================================================================================
 References
 ================================================================================
 
