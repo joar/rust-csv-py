@@ -54,7 +54,7 @@ test:
 		$(PYTEST_TEST_OPTS)
 
 # Run heavy benchmarks, 1 = True, 0 = False
-BENCHMARK_LARGE ?= 0
+BENCHMARK_FULL ?= 0
 
 .PHONY: benchmark
 benchmark: | develop-release
@@ -67,4 +67,6 @@ benchmark: | develop-release
 		--benchmark-histogram \
 		--benchmark-autosave
 
-
+.PHONY: benchmark-full
+benchmark-full:
+	make BENCHMARK_FULL=1 benchmark

@@ -9,15 +9,13 @@ cache:
 
 env:
   - RUST_VERSION=nightly
-    # Run heavy benchmarks
-  - BENCHMARK_LARGE=1
 
 install:
   - pip install pipenv
-  - pipenv install --dev
+  - pipenv install --dev --deploy
   - curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUST_VERSION
   - export PATH="$HOME/.cargo/bin:$PATH"
   - make develop-release
 
 script:
-  - make test benchmark
+  - make test benchmark-full

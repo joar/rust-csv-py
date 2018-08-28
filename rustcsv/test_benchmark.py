@@ -2,11 +2,15 @@ import csv
 import enum
 import io
 import logging
+import string
 import tempfile
 from functools import partial
 from typing import Iterable, BinaryIO
 
+import attr
 import pytest
+import hypothesis.strategies
+from _pytest.fixtures import FixtureRequest
 from pytest_benchmark.fixture import BenchmarkFixture
 
 from rustcsv import CSVReader
@@ -17,6 +21,7 @@ _log = logging.getLogger(__name__)
 class Parser(enum.Enum):
     STDLIB = enum.auto()
     RUST = enum.auto()
+    RUST_NO_PY_READER = enum.auto()
 
 
 class FileStorage(enum.Enum):
@@ -25,10 +30,11 @@ class FileStorage(enum.Enum):
 
 
 class ColumnType(enum.Enum):
-    INTEGERS = enum.auto()
+    INTEGER = enum.auto()
     UNICODE = enum.auto()
     UNICODE_LONG = enum.auto()
     ASCII = enum.auto()
+    ASCII_LONG = enum.auto()
 
 
 def get_reader(impl: Parser, path: str) -> Iterable[Iterable[str]]:
@@ -36,6 +42,8 @@ def get_reader(impl: Parser, path: str) -> Iterable[Iterable[str]]:
         return csv.reader(open(path, "r"))
     elif impl is Parser.RUST:
         return CSVReader(open(path, "rb"))
+    elif impl is Parser.RUST_NO_PY_READER:
+        return CSVReader(path)
     else:
         raise ValueError(f"Invalid impl: {impl}")
 
@@ -55,24 +63,70 @@ def wrap_fd(impl: Parser, fd: BinaryIO, write: bool = False):
         raise ValueError(f"Invalid impl: {impl}")
 
 
-def generate_csv(fd: BinaryIO, rows: int, column_type: ColumnType):
-    wrapped_fd = wrap_fd(Parser.STDLIB, fd, write=True)
-    writer = csv.writer(wrapped_fd)
-    for i in range(rows):
-        if column_type is ColumnType.INTEGERS:
-            row = (i % 1000,) * 10
-        elif column_type is ColumnType.UNICODE:
-            row = ("aoeu", "xyz", "æ" * (i % 42))
-        elif column_type is ColumnType.UNICODE_LONG:
-            row = ("aoeu", "xyz", "æ" * (i % 42)) * 10
-        elif column_type is ColumnType.ASCII:
-            row = ("aoeu", "xyz", "a" * (i % 42))
-        else:
-            raise ValueError(f"Invalid column_type: {column_type}")
+@attr.s(auto_attribs=True)
+class CSVFixture:
+    path: str
+    rows: int
+    column_type: ColumnType
 
-        writer.writerow([str(i) for i in row])
 
-    fd.flush()
+@pytest.fixture(scope="module", params=[1_000, 10_000, 100_000, 1_000_000])
+def fx_benchmark_row_count(request):
+    """
+    Number of CSV rows to generate
+    """
+    _log.debug("num_rows=%r", request.param)
+    return request.param
+
+
+@pytest.fixture(scope="module", params=ColumnType.__members__.values())
+def fx_benchmark_column_type(request: FixtureRequest):
+    _log.debug("column_type=%r", request.param)
+    return request.param
+
+
+@pytest.fixture(scope="module")
+def fx_csv_file(fx_benchmark_row_count, fx_benchmark_column_type: ColumnType):
+    """
+    Generates a CSV file
+    """
+    _log.info(
+        "Generating CSV file: rows=%r, column_type=%r",
+        fx_benchmark_row_count,
+        fx_benchmark_column_type,
+    )
+    column_type = fx_benchmark_column_type
+    with tempfile.NamedTemporaryFile(mode="wb") as fd:
+        wrapped_fd = wrap_fd(Parser.STDLIB, fd, write=True)
+        writer = csv.writer(wrapped_fd)
+        for i in range(fx_benchmark_row_count):
+            if column_type is ColumnType.INTEGER:
+                row = (i % 1000,) * 10
+            elif column_type is ColumnType.UNICODE:
+                row = ("aoeu", "xyz", "æ" * (i % 42))
+            elif column_type is ColumnType.UNICODE_LONG:
+                row = [hypothesis.strategies.text(average_size=100)]
+            elif column_type is ColumnType.ASCII:
+                row = ("aoeu", "xyz", "a" * (i % 42))
+            elif column_type is ColumnType.ASCII_LONG:
+                row = [
+                    hypothesis.strategies.text(
+                        alphabet=string.printable, average_size=100
+                    )
+                    for i in range(5)
+                ]
+            else:
+                raise ValueError(f"Invalid column_type: {column_type}")
+
+            writer.writerow([str(i) for i in row])
+
+        wrapped_fd.flush()
+
+        yield CSVFixture(
+            path=fd.name,
+            rows=fx_benchmark_row_count,
+            column_type=fx_benchmark_column_type,
+        )
 
 
 def read_csv(impl: Parser, path: str):
@@ -83,32 +137,22 @@ def read_csv(impl: Parser, path: str):
     return i
 
 
+mark_only_full = pytest.mark.skipif(
+    "not bool(int(os.environ.get('BENCHMARK_FULL', 0)))"
+)
+
+
 @pytest.mark.benchmark(min_rounds=10)
-@pytest.mark.parametrize("impl", [Parser.RUST, Parser.STDLIB])
-@pytest.mark.parametrize("column_type", ColumnType.__members__.values())
 @pytest.mark.parametrize(
-    "row_count",
-    [
-        1_000,
-        10_000,
-        100_000,
-        pytest.param(
-            1_000_000,
-            marks=pytest.mark.skipif(
-                "not bool(int(os.environ.get('BENCHMARK_LARGE', 0))) "
-            ),
-        ),
-    ],
+    "impl", [Parser.RUST, Parser.RUST_NO_PY_READER, Parser.STDLIB]
 )
 def test_benchmark_read(
-    benchmark: BenchmarkFixture, impl, column_type: ColumnType, row_count: int
+    benchmark: BenchmarkFixture, impl, fx_csv_file: CSVFixture
 ):
-    benchmark.group = f"test_benchmark_read-{column_type}-{row_count}"
-    with tempfile.NamedTemporaryFile("wb") as writable_csv_fd:
-        args = (writable_csv_fd.name,)
-        generate_csv(writable_csv_fd, row_count, column_type)
-        read_row_count = benchmark.pedantic(
-            partial(read_csv, impl), args, iterations=10
-        )
+    benchmark.group = (
+        f"test_benchmark_read-{fx_csv_file.column_type}-{fx_csv_file.rows}"
+    )
+    args = (fx_csv_file.path,)
+    read_row_count = benchmark(partial(read_csv, impl), *args)
 
-    assert read_row_count == row_count
+    assert read_row_count == fx_csv_file.rows

@@ -14,6 +14,7 @@ black = "==18.6b4"
 isort = "*"
 colorlog = "*"
 pytest-benchmark = {version = "*", extras = ["histogram"]}
+hypothesis = "*"
 
 [requires]
 python_version = "3.6"
