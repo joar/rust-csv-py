@@ -1,13 +1,14 @@
 import contextlib
-import csv
 import io
 import logging
 import tempfile
-from typing import Tuple, Iterable, Union
+from typing import Iterable, Union
 
 import pytest
-from rustcsv import CSVReader
 import rustcsv.error
+from rustcsv import CSVReader, CSVWriter
+
+_log = logging.getLogger(__name__)
 
 
 @pytest.fixture(autouse=True, scope="session")
@@ -116,3 +117,35 @@ def test_raises_utf8error():
         assert utf8_error.position == rustcsv.error.Position(
             byte=27, line=2, record=1
         )
+
+
+def test_writer_invalid_row_type():
+    pass
+
+
+@pytest.mark.parametrize(
+    ["terminator", "double_quote", "records", "expected"],
+    [
+        (b"\n", True, [("hello", "world")], b"hello,world\n"),
+        (b"\n", True, [('quoted"', "world")], b'"quoted""",world\n'),
+        (b"\n", False, [('escaped quote"',)], b'"escaped quote\\""\n'),
+    ],
+    ids=repr,
+)
+def test_writer(
+    terminator: bytes,
+    double_quote: bool,
+    records: Iterable[Iterable[str]],
+    expected: bytes,
+):
+    with tempfile.NamedTemporaryFile("wb") as fd:
+        writer = CSVWriter(
+            fd, terminator=terminator, double_quote=double_quote
+        )
+        for row in records:
+            writer.writerow(row)
+
+        writer.flush()
+        r_fd = open(fd.name, "rb")
+        result = r_fd.read()
+        assert result == expected

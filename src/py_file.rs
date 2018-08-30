@@ -13,24 +13,27 @@ use std::io::Write;
 ///
 ///  [binary file]: https://docs.python.org/3/glossary.html#term-binary-file
 #[derive(Debug)]
-pub struct PyReader {
+pub struct PyFile {
     file_like: PyObject,
 }
 
-impl PyReader {
-    /// Create a new [PyReader] from a "[binary file]" [PyObject]
+impl PyFile {
+    /// Create a new [PyFile] from a "[binary file]" [PyObject]
     ///
     /// # Arguments
     ///
     /// * `file_like` - [binary file] PyObject, will be quack-tested by getting
     /// the `read` Python attribute from it.
-    pub fn from_object(file_like: PyObject) -> PyResult<PyReader> {
+    pub fn from_object(file_like: PyObject) -> PyResult<PyFile> {
         let gil = Python::acquire_gil();
         let py = gil.python();
         info!("Creating from file_like_ref {:?}", file_like.as_ref(py));
 
+        // TODO: Use "readable()"
+        // https://docs.python.org/3/library/io.html#io.IOBase.readable
+
         match file_like.getattr(py, "read") {
-            Ok(_) => Ok(PyReader { file_like }),
+            Ok(_) => Ok(PyFile { file_like }),
             Err(error) => Err(exc::TypeError::new(format!(
                 "Expected a file-like object, got {:?} (original error: {:?})",
                 file_like.as_ref(py),
@@ -39,7 +42,7 @@ impl PyReader {
         }
     }
 
-    /// Reads bytes from the the [binary file] [PyObject] [PyReader::file_like]
+    /// Reads bytes from the the [binary file] [PyObject] [PyFile::file_like]
     ///
     /// The method acquires the GIL, then calls `getattr(file_like,
     ///
@@ -61,6 +64,7 @@ impl PyReader {
         // Extract the PyBytes into a Box<Vec<u8>>
         match call_result.extract(py) {
             Ok(r) => Ok(Box::new(r)),
+            //
             Err(error) => if py.is_instance::<PyString, _>(call_result.as_ref(py))? {
                 return Err(exc::TypeError::new(format!(
                     "The file {:?} is not open in binary mode. (Cause: {:?})",
@@ -72,10 +76,47 @@ impl PyReader {
             },
         }
     }
+
+    /// Writes bytes to the [binary file] [PyObject] [PyFile::file_like]
+    pub fn write_bytes(&mut self, buf: &[u8]) -> PyResult<usize> {
+        let gil = Python::acquire_gil();
+        let py = gil.python();
+        debug!("buf: {:?}", buf);
+        let write_func = self.file_like.getattr(py, "write")?;
+        let bytes = PyBytes::new(py, buf);
+        debug!("bytes: {:?}", bytes.as_ref(py));
+        let call_result = write_func.call1(py, (bytes,))?;
+
+        // Return the number of bytes written
+        Ok(call_result.extract(py)?)
+    }
 }
 
-impl Read for PyReader {
-    /// Reads bytes from the [`PyReader.file_like`] [`PyObject`] via [`PyReader.read_bytes`].
+impl Write for PyFile {
+    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
+        Ok(self.write_bytes(buf)?)
+    }
+
+    fn flush(&mut self) -> io::Result<()> {
+        let gil = Python::acquire_gil();
+        let py = gil.python();
+        debug!("flushing {:?}", self.file_like.as_ref(py));
+        match self.file_like.getattr(py, "flush")?.call0(py) {
+            Err(error) => Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!(
+                    "Could not flush {:?} (Cause: {:?})",
+                    self.file_like.as_ref(py),
+                    error.to_object(py).as_ref(py),
+                ),
+            )),
+            Ok(_) => Ok(()),
+        }
+    }
+}
+
+impl Read for PyFile {
+    /// Reads bytes from the [`PyFile.file_like`] [`PyObject`] via [`PyFile.read_bytes`].
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         debug!("buf.len(): {:?}", buf.len());
         match self.read_bytes(buf.len()) {
@@ -103,15 +144,23 @@ impl Read for PyReader {
     }
 }
 
-impl Drop for PyReader {
+impl Drop for PyFile {
     fn drop(&mut self) {
         debug!("Dropping {:?}", self);
     }
 }
 
+impl<'source> FromPyObject<'source> for PyFile {
+    fn extract(ob: &'source PyObjectRef) -> Result<Self, PyErr> {
+        let gil = Python::acquire_gil();
+        let py = gil.python();
+        Ok(PyFile::from_object(ob.to_object(py))?)
+    }
+}
+
 #[cfg(test)]
 mod tests {
-    use super::PyReader;
+    use super::PyFile;
     use pyo3::prelude::*;
     use pyo3::{PyDict, PyResult, Python};
     use std::io::Read;
@@ -141,7 +190,7 @@ mod tests {
                 panic!("Error: {:?}", err);
             });
 
-        let mut rdr = PyReader::new(file_like);
+        let mut rdr = PyFile::new(file_like);
         let mut buffer = String::new();
         rdr.read_to_string(&mut buffer).unwrap_or_else(|err| {
             panic!("Could not read to string: {}", err);

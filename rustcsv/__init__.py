@@ -2,13 +2,10 @@ from __future__ import absolute_import
 
 import logging
 
-from ._rustcsv import CSVReader as _CSVReader
+from ._rustcsv import CSVReader as _CSVReader, CSVWriter as _CSVWriter
 
-__all__ = ["CSVReader"]
+__all__ = ["CSVReader", "CSVWriter"]
 
 
 CSVReader = _CSVReader
-# class CSVReader(_CSVReader):
-#     pass
-# def __init__(self, *args, **kwargs):
-#     super(CSVReader, self).__init__()
+CSVWriter = _CSVWriter

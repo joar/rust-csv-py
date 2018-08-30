@@ -5,14 +5,13 @@ import logging
 import string
 import tempfile
 from functools import partial
-from typing import Iterable, BinaryIO
+from typing import BinaryIO, Iterable
 
 import attr
-import pytest
 import hypothesis.strategies
+import pytest
 from _pytest.fixtures import FixtureRequest
 from pytest_benchmark.fixture import BenchmarkFixture
-
 from rustcsv import CSVReader
 
 _log = logging.getLogger(__name__)
