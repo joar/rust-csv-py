@@ -124,23 +124,81 @@ def test_writer_invalid_row_type():
 
 
 @pytest.mark.parametrize(
-    ["terminator", "double_quote", "records", "expected"],
     [
-        (b"\n", True, [("hello", "world")], b"hello,world\n"),
-        (b"\n", True, [('quoted"', "world")], b'"quoted""",world\n'),
-        (b"\n", False, [('escaped quote"',)], b'"escaped quote\\""\n'),
+        "terminator",
+        "double_quote",
+        "quote_style",
+        "escape",
+        "records",
+        "expected",
+    ],
+    [
+        (
+            b"\n",
+            True,
+            "necessary",
+            b"\\",
+            [("hello", "world")],
+            b"hello,world\n",
+        ),
+        (
+            b"\n",
+            True,
+            "necessary",
+            b"\\",
+            [('quoted"', "world")],
+            b'"quoted""",world\n',
+        ),
+        (
+            b"\n",
+            False,
+            "necessary",
+            b"\\",
+            [('escaped quote"',)],
+            b'"escaped quote\\""\n',
+        ),
+        (
+            b"\n",
+            False,
+            "necessary",
+            b"\\",
+            [("must,be,quoted",)],
+            b'"must,be,quoted"\n',
+        ),
+        (
+            b"\n",
+            True,
+            "necessary",
+            b"\\",
+            [("must,be,quoted",)],
+            b'"must,be,quoted"\n',
+        ),
+        (
+            b"\n",
+            True,
+            "always",
+            b"\\",
+            [("always", "1", "quoted")],
+            b'"always","1","quoted"\n',
+        ),
     ],
     ids=repr,
 )
 def test_writer(
     terminator: bytes,
     double_quote: bool,
+    quote_style: str,
+    escape: bytes,
     records: Iterable[Iterable[str]],
     expected: bytes,
 ):
     with tempfile.NamedTemporaryFile("wb") as fd:
         writer = CSVWriter(
-            fd, terminator=terminator, double_quote=double_quote
+            fd,
+            terminator=terminator,
+            double_quote=double_quote,
+            quote_style=quote_style,
+            escape=escape,
         )
         for row in records:
             writer.writerow(row)
@@ -149,3 +207,9 @@ def test_writer(
         r_fd = open(fd.name, "rb")
         result = r_fd.read()
         assert result == expected
+
+
+def test_writer_invalid_args():
+    fd = io.BytesIO()
+    with pytest.raises(ValueError):
+        CSVWriter(fd, quote_style="invalid")
