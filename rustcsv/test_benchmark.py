@@ -69,8 +69,21 @@ class CSVFixture:
     column_type: ColumnType
 
 
-@pytest.fixture(scope="module", params=[1_000, 10_000, 100_000, 1_000_000])
-def fx_benchmark_row_count(request):
+skip_if_not_full = pytest.mark.skipif(
+    "not bool(int(os.environ.get('BENCHMARK_FULL', 0)))"
+)
+
+
+@pytest.fixture(
+    scope="module",
+    params=[
+        1_000,
+        10_000,
+        pytest.param(100_000, marks=skip_if_not_full),
+        pytest.param(1_000_000, marks=skip_if_not_full),
+    ],
+)
+def fx_benchmark_row_count(request: FixtureRequest):
     """
     Number of CSV rows to generate
     """
@@ -134,11 +147,6 @@ def read_csv(impl: Parser, path: str):
     for i, row in enumerate(reader, start=1):
         pass
     return i
-
-
-mark_only_full = pytest.mark.skipif(
-    "not bool(int(os.environ.get('BENCHMARK_FULL', 0)))"
-)
 
 
 @pytest.mark.benchmark(min_rounds=10)
