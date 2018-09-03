@@ -25,7 +25,7 @@ RUST_EXTENSION_DEBUG = get_env_bool("RUST_EXTENSION_DEBUG", True)
 RUST_EXTENSION_NATIVE = get_env_bool("RUST_EXTENSION_NATIVE", False)
 
 try:
-    from setuptools_rust import RustExtension, Binding, Strip
+    from setuptools_rust import RustExtension, Binding
 except ImportError:
     import subprocess
 
@@ -36,7 +36,7 @@ except ImportError:
         print("Please install setuptools-rust package")
         raise SystemExit(errno)
     else:
-        from setuptools_rust import RustExtension
+        from setuptools_rust import RustExtension, Binding
 
 
 class PyTest(TestCommand):
