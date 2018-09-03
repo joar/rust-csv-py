@@ -3,7 +3,8 @@ PY_RUN ?= pipenv run
 # Triggers the --release flag on or off when setup.py is building the rust
 # extension module.
 RUST_EXTENSION_DEBUG ?= True
-RUSTFLAGS ?= target-cpu=native
+RUST_EXTENSION_NATIVE ?= False
+MANYLINUX_IMAGE ?= quay.io/pypa/manylinux1_x86_64
 
 .PHONY: default
 default:
@@ -33,7 +34,42 @@ develop-debug:
 develop-release:
 	make \
 		RUST_EXTENSION_DEBUG=False \
+		RUST_EXTENSION_NATIVE=True \
 		develop
+
+# Release management
+# ==============================================================================
+
+.PHONY: build-release
+build-release-sdist:
+	$(PY_RUN) env \
+		RUST_EXTENSION_DEBUG=False \
+		RUST_EXTENSION_NATIVE=True \
+		python setup.py \
+		sdist
+
+.PHONY: reqirements-files
+requirements-files:
+	# Generate reqirements file
+	$(PY_RUN) pipenv lock --requirements > requirements.txt
+	# Generate dev reqirements file
+	$(PY_RUN) pipenv lock --requirements --dev > dev-requirements.txt
+
+.PHONY: build-manylinux-wheels
+build-manylinux-wheels: | requirements-files
+	docker run --rm -it \
+		-v $(shell pwd):/io \
+		--env RUST_EXTENSION_DEBUG=$(RUST_EXTENSION_DEBUG) \
+		$(MANYLINUX_IMAGE) \
+		/io/travis/build-wheels.sh
+
+.PHONY: publish-test
+publish-test:
+	# Publish wheels to Test PyPI:
+	# https://packaging.python.org/guides/using-testpypi/
+	$(PY_RUN) twine upload \
+		--repository-url https://test.pypi.org/legacy/ \
+		dist/*
 
 # pytest options
 PYTEST_OPTS ?= -vv --showlocals

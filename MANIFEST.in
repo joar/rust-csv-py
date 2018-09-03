@@ -1,0 +1,5 @@
+recursive-include src *.rs
+recursive-include rustcsv *
+include *.rst
+include *.toml
+include MANIFEST.in

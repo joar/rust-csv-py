@@ -10,7 +10,7 @@ attrs = "*"
 [dev-packages]
 ipython = "*"
 pytest = "*"
-black = "==18.6b4"
+black = { version = "==18.6b4", markers = "python_version  >= '3.6'"}
 isort = "*"
 colorlog = "*"
 pytest-benchmark = {version = "*", extras = ["histogram"]}
