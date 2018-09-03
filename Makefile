@@ -37,6 +37,13 @@ develop-release:
 		RUST_EXTENSION_NATIVE=True \
 		develop
 
+.PHONY: clean
+clean: | setuptools-clean
+
+.PHONY: setuptools-clean
+setuptools-clean:
+	$(PY_RUN) python setup.py clean
+
 # Release management
 # ==============================================================================
 
