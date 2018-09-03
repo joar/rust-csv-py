@@ -60,8 +60,16 @@ build-manylinux-wheels: | requirements-files
 	docker run --rm -it \
 		-v $(shell pwd):/io \
 		--env RUST_EXTENSION_DEBUG=$(RUST_EXTENSION_DEBUG) \
+		--env RUST_EXTENSION_NATIVE=$(RUST_EXTENSION_NATIVE) \
 		$(MANYLINUX_IMAGE) \
 		/io/travis/build-wheels.sh
+
+.PHONY: build-release-manylinux-wheels
+build-release-manylinux-wheels:
+	make \
+		RUST_EXTENSION_DEBUG=False \
+		RUST_EXTENSION_NATIVE=False \
+		build-manylinux-wheels
 
 .PHONY: publish-test
 publish-test:
@@ -69,7 +77,8 @@ publish-test:
 	# https://packaging.python.org/guides/using-testpypi/
 	$(PY_RUN) twine upload \
 		--repository-url https://test.pypi.org/legacy/ \
-		dist/*
+		--username testrustcsv
+		dist/* wheels/*
 
 # pytest options
 PYTEST_OPTS ?= -vv --showlocals
