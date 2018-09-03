@@ -39,7 +39,7 @@ build_wheel() {
     local PYTHON_LIB
     local RUST_LIB_PATH
     RUST_LIB_PATH="$HOME/rust/lib"
-    PYTHON_LIB="$(${PYBIN}/python -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")"
+    PYTHON_LIB="$("${PYBIN}/python" -c "import sysconfig; print(sysconfig.get_config_var('LIBDIR'))")"
     PKG_CONFIG_PATH="${PYTHON_LIB}/pkgconfig"
     declare -a env_vars=()
     # Set up paths for cargo & PyO3
@@ -47,7 +47,7 @@ build_wheel() {
     # Tell build.rs where "python" is
     env_vars+=('PYTHON_SYS_EXECUTABLE='"$PYBIN/python")
     env_vars+=('PYTHON_LIB='"$PYTHON_LIB")
-    env_vars+=('PKG_CONFIG_PATH='"$PYTHON_LIB")
+    env_vars+=('PKG_CONFIG_PATH='"$PKG_CONFIG_PATH")
     env_vars+=('LIBRARY_PATH='"$LIBRARY_PATH:$PYTHON_LIB")
     env_vars+=('LD_LIBRARY_PATH='"$PYTHON_LIB:$RUST_LIB_PATH:$LD_LIBRARY_PATH")
     "${PYBIN}/pip" install -r /io/dev-requirements.txt

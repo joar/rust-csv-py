@@ -1,23 +1,28 @@
+dist: xenial
+sudo: required
+services:
+  - docker
+
 language: python
 python:
 - '3.6'
-dist: xenial
 cache:
 - cargo
 env:
 - RUST_VERSION=nightly
+
 install:
 - pip install pipenv
 - pipenv install --dev --deploy
 - curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUST_VERSION
 - export PATH="$HOME/.cargo/bin:$PATH"
 - make develop-release
+
 script:
 - make test benchmark-full
+
 deploy:
-  # Test PyPI
-  - provider: pypi
-    user: testjoar
-    server: https://test.pypi.org/legacy/
-    password:
-      secure: kyGSNdv/8MZGWY4CPR1470bVuTfiKeb8CzqJ07F2rHLf3igV1ulsd9n7ZspOP5K45SCLr9Waoj0jI5z8Gh8OjpKvSZ15SCLD6vh4YiySCnPLgLtw9Zt2si6rba3vRI+/lsVh2kiPevoLj1JCOMPFU3lWaAaZBmpdj2niiEgNWutIoRl6MsvZtHJ6xwGsWu5NEAcWE+Sq1BA1zJqgEgAABSpvKzs9W/hrmE61g+DhTG2xFDaqcCY++9j50+k0Wh25PCwX3k4yiYBRcj17mvJsD1MiQWHGgbC/PTdOb9f5PseAqX8caGIMNHve/mzv0WKq3tv03heaTCdrnACvuQK9h0ihBAn6coiWWyppW3ScR0bxICOz6RmEaMlI7nHndGi++vBu85rRNK8F+fvdXvDxiSFmD7qIy8d6fID+Cs4HfLcrNWaVwdWcazK/XIFO9x+fm3VvGI0worEqH3TZbpE6QNN8meA8tTMwgiTk+a5mU4ZvYNpwlplSr5LlMVLZHizzVfoBgZQUE4k8ehEM7zH9AY/bs6GkIwyOV7UfG88QIdj5u8q42UtldIDnVYnxf+21Y/PSSldWHXlrT4UL3Adzw56teey9JNDyE/RY6dsyC9BuvBynqJ8vfGaDGhenwzYDbF8tnrYq1A7+jO2yequ1qy3+2f4EfDcBu339Fp6zd0k=
+  - provider: script
+    script: bash travis/deploy.sh
+    skip_cleanup: true
+

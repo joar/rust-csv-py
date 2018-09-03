@@ -78,7 +78,7 @@ publish-test:
 	$(PY_RUN) twine upload \
 		--repository-url https://test.pypi.org/legacy/ \
 		--username testrustcsv
-		dist/* wheels/*
+		wheels/*
 
 # pytest options
 PYTEST_OPTS ?= -vv --showlocals
