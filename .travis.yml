@@ -19,7 +19,7 @@ install:
 - make develop-release
 
 script:
-- make test benchmark-full
+- make test
 
 deploy:
   - provider: script
@@ -27,3 +27,6 @@ deploy:
     skip_cleanup: true
     on:
       tags: true
+
+after_success:
+  - make benchmark-full
