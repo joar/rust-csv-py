@@ -76,7 +76,7 @@ build_wheels()  {
     # =========================
     for PYBIN in $PYBINS; do
         "${PYBIN}/pip" install rustcsv --no-index -f /io/wheels
-        (cd "$HOME"; "${PYBIN}/py.test" rustcsv)
+        (cd "$HOME"; "${PYBIN}/py.test" --pyargs rustcsv)
     done
 }
 
