@@ -11,20 +11,28 @@ install_rust() {
     # install rust + cargo nightly
     # ============================
     export RUST_VERSION=nightly
-    green "Installing rust + cargo"
-    curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUST_VERSION
-    export PATH="$HOME/.cargo/bin:$PATH"
+    CARGO_BIN=$HOME/.cargo/bin
+    if ! test -d "$CARGO_BIN"; then
+        green "Installing rust + cargo"
+        curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUST_VERSION
+    fi
+    if ! grep "$CARGO_BIN" <<<"$PATH" &> /dev/null; then
+        green "Addigng $CARGO_BIN to \$PATH"
+        export PATH="$CARGO_BIN:$PATH"
+    fi
 }
 
 list_pybins() {
     local bin
-    for bin in /opt/python/cp3*/bin; do
-        # Ignore 3.4 and 3.5 since we use f-strings
-        if ! grep -E "cp34|cp35" <<<"$bin" &> dev/null; then
-            echo "$bin"
-        else
-            echo "Skipping $bin" >&2
-        fi
+    for py in "$@"; do
+        for bin in /opt/python/"${py}"*/bin; do
+            # Ignore 3.4 and 3.5 since we use f-strings
+            if ! grep -E "cp34|cp35" <<<"$bin" &> dev/null; then
+                echo "$bin"
+            else
+                echo "Skipping $bin" >&2
+            fi
+        done
     done
 }
 
@@ -57,7 +65,7 @@ build_wheel() {
 build_wheels()  {
     install_rust
 
-    PYBINS="$(list_pybins)"
+    PYBINS="$(list_pybins "$@")"
 
     # Compile wheels
     # ==============
@@ -82,7 +90,7 @@ build_wheels()  {
 
 if [[ "${BASH_SOURCE[0]}" = "${0}" ]]; then
     set -e -x
-    build_wheels
+    build_wheels "$@"
 else
     echo "Script was sourced, not executing build_wheels" >&2
 fi

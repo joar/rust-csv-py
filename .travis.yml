@@ -19,15 +19,21 @@ install:
 - export PATH="$HOME/.cargo/bin:$PATH"
 - make develop-release
 
-script:
-- make test
-
-deploy:
-  - provider: script
-    script: bash travis/deploy.sh
-    skip_cleanup: true
-    on:
-      tags: true
-
-after_deploy:
-  - make benchmark-full
+jobs:
+  include:
+    - stage: test
+      script: make test
+    - stage: test
+      script: make benchmark-full
+    - stage: test
+      script: skip
+      install: skip
+      env:
+      - MANYLINUX_PYTHON_VERSIONS=cp36
+      - MANYLINUX_PYTHON_VERSIONS=cp37
+      deploy:
+        - provider: script
+          script: bash travis/deploy.sh
+          skip_cleanup: true
+          on:
+            tags: true
