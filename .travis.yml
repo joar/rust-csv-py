@@ -33,20 +33,14 @@ jobs:
         - TARGET=benchmark-full
 
     - stage: test
-      script: skip
-      install: skip
       env:
         - MANYLINUX_PYTHON_VERSIONS=cp36
-      if: tag IS present
-      deploy:
-        provider: script
-        script: bash travis/deploy.sh
-    - stage: test
-      script: skip
+      script: bash travis/deploy.sh
       install: skip
+      if: tag IS present
+    - stage: test
       env:
         - MANYLINUX_PYTHON_VERSIONS=cp37
+      script: bash travis/deploy.sh
+      install: skip
       if: tag IS present
-      deploy:
-        provider: script
-        script: bash travis/deploy.sh
