@@ -12,9 +12,11 @@ env:
   global:
     - RUST_VERSION=nightly
 
-install:
+before_install:
 - pip install pipenv
 - pipenv install --dev --deploy
+
+install:
 - curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUST_VERSION
 - export PATH="$HOME/.cargo/bin:$PATH"
 - make develop-release
