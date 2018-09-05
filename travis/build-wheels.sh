@@ -66,6 +66,9 @@ build_wheels()  {
     install_rust
 
     PYBINS="$(list_pybins "$@")"
+    if test -z "$PYBINS"; then
+        printf "\x1b[31m%s\x1b[0m\n" "No python versions found for $@"
+    fi
 
     # Compile wheels
     # ==============
