@@ -35,8 +35,9 @@ jobs:
       services:
         - docker
       env:
-        - MANYLINUX_PYTHON_VERSIONS=cp36
-        - MANYLINUX_PYTHON_VERSIONS=cp37
+        matrix:
+          - MANYLINUX_PYTHON_VERSIONS=cp36
+          - MANYLINUX_PYTHON_VERSIONS=cp37
       script: bash travis/deploy.sh
       install: skip
       if: tag IS present
