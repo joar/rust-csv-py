@@ -1,11 +1,10 @@
 dist: xenial
 sudo: required
-services:
-  - docker
 
 language: python
 python:
 - '3.6'
+
 cache:
   directories:
     - $HOME/.cargo
@@ -33,14 +32,19 @@ jobs:
         - TARGET=benchmark-full
 
     - stage: test
+      services:
+        - docker
       env:
         - MANYLINUX_PYTHON_VERSIONS=cp36
-      script: bash travis/deploy.sh
-      install: skip
-      if: tag IS present
-    - stage: test
-      env:
         - MANYLINUX_PYTHON_VERSIONS=cp37
       script: bash travis/deploy.sh
       install: skip
       if: tag IS present
+    # - stage: test
+    #   services:
+    #     - docker
+    #   env:
+    #     - MANYLINUX_PYTHON_VERSIONS=cp37
+    #   script: bash travis/deploy.sh
+    #   install: skip
+    #   if: tag IS present
