@@ -10,9 +10,11 @@ cache:
   directories:
     - $HOME/.cargo
 env:
-- RUST_VERSION=nightly
-- MANYLINUX_PYTHON_VERSIONS=cp36
-- MANYLINUX_PYTHON_VERSIONS=cp37
+  global:
+    - RUST_VERSION=nightly
+  matrix:
+    - MANYLINUX_PYTHON_VERSIONS=cp36
+    - MANYLINUX_PYTHON_VERSIONS=cp37
 
 install:
 - pip install pipenv
@@ -27,14 +29,18 @@ jobs:
       script: make test
       env:
         - MANYLINUX_PYTHON_VERSIONS=
+        - TARGET=test
     - stage: test
       script: make benchmark-full
       env:
         - MANYLINUX_PYTHON_VERSIONS=
+        - TARGET=benchmark-full
     - stage: test
       script: skip
       install: skip
       if: tag IS present
+      env:
+        - TARGET=deploy
       deploy:
         - provider: script
           script: bash travis/deploy.sh
