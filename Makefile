@@ -85,7 +85,7 @@ publish-test:
 	# https://packaging.python.org/guides/using-testpypi/
 	$(PY_RUN) twine upload \
 		--repository-url https://test.pypi.org/legacy/ \
-		--username testrustcsv
+		--username testrustcsv \
 		wheels/*
 
 # pytest options
