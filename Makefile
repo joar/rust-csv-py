@@ -5,6 +5,7 @@ PY_RUN ?= pipenv run
 RUST_EXTENSION_DEBUG ?= True
 RUST_EXTENSION_NATIVE ?= False
 MANYLINUX_IMAGE ?= quay.io/pypa/manylinux1_x86_64
+MANYLINUX_PYTHON_VERSIONS ?= cp36 cp37
 
 .PHONY: default
 default:
@@ -69,7 +70,7 @@ build-manylinux-wheels: | requirements-files
 		--env RUST_EXTENSION_DEBUG=$(RUST_EXTENSION_DEBUG) \
 		--env RUST_EXTENSION_NATIVE=$(RUST_EXTENSION_NATIVE) \
 		$(MANYLINUX_IMAGE) \
-		/io/travis/build-wheels.sh
+		/io/travis/build-wheels.sh $(MANYLINUX_PYTHON_VERSIONS)
 
 .PHONY: build-release-manylinux-wheels
 build-release-manylinux-wheels:
