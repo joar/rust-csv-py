@@ -12,9 +12,6 @@ cache:
 env:
   global:
     - RUST_VERSION=nightly
-  matrix:
-    - MANYLINUX_PYTHON_VERSIONS=cp36
-    - MANYLINUX_PYTHON_VERSIONS=cp37
 
 install:
 - pip install pipenv
@@ -28,19 +25,24 @@ jobs:
     - stage: test
       script: make test
       env:
-        - MANYLINUX_PYTHON_VERSIONS=
         - TARGET=test
     - stage: test
       script: make benchmark-full
       env:
-        - MANYLINUX_PYTHON_VERSIONS=
         - TARGET=benchmark-full
-    - stage: test
-      script: skip
+    - script: skip
       install: skip
-      if: tag IS present
       env:
-        - TARGET=deploy
+        - MANYLINUX_PYTHON_VERSIONS=cp36
+      if: tag = true
+      deploy:
+        - provider: script
+          script: bash travis/deploy.sh
+    - script: skip
+      install: skip
+      env:
+        - MANYLINUX_PYTHON_VERSIONS=cp37
+      if: tag = true
       deploy:
         - provider: script
           script: bash travis/deploy.sh
