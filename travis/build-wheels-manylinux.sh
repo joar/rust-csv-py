@@ -8,7 +8,7 @@ source "$TRAVIS_DIR/_output_helpers.sh"
 # yum install -y openssl-devel
 
 build_wheels()  {
-    bash "$TRAVIS_DIR"/install_rust.sh
+    bash "$TRAVIS_DIR"/install-rust.sh
 
     # Parameters
     WHEELHOUSE="${WHEELHOUSE:-"/io/wheelhouse"}"
@@ -38,21 +38,6 @@ build_wheels()  {
         "${PYBIN}/pip" install rustcsv --no-index -f "$WHEELHOUSE"
         (cd "$HOME"; "${PYBIN}/py.test" --pyargs rustcsv)
     done
-}
-
-install_rust() {
-    # install rust + cargo nightly
-    # ============================
-    export RUST_VERSION=nightly
-    CARGO_BIN=$HOME/.cargo/bin
-    if ! test -d "$CARGO_BIN"; then
-        green "Installing rust + cargo"
-        curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUST_VERSION
-    fi
-    if ! grep "$CARGO_BIN" <<<"$PATH" &> /dev/null; then
-        green "Addigng $CARGO_BIN to \$PATH"
-        export PATH="$CARGO_BIN:$PATH"
-    fi
 }
 
 list_pybins() {

@@ -9,7 +9,7 @@ build_wheels() {
     WHEELHOUSE="${WHEELHOUSE:-"wheelhouse"}"
     declare -a ENABLED_VERSIONS=("${@}")
 
-    bash "$TRAVIS_DIR"/install_rust.sh
+    bash "$TRAVIS_DIR"/install-rust.sh
 
     pip install -U cibuildwheel
 
