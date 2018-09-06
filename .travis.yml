@@ -11,6 +11,7 @@ cache:
 env:
   global:
     - RUST_VERSION=nightly
+    - RUST_EXTENSION_DEBUG=False
 
 before_install:
 - pip install pipenv
@@ -33,6 +34,7 @@ jobs:
       env:
         - TARGET=benchmark-full
 
+      # manylinux cp36
     - stage: test
       services:
         - docker
@@ -41,11 +43,20 @@ jobs:
       script: bash travis/deploy.sh
       install: skip
       if: tag IS present
+
+      # manylinux cp37
     - stage: test
       services:
         - docker
       env:
         - MANYLINUX_PYTHON_VERSIONS=cp37
-      script: bash travis/deploy.sh
+      script: travis/deploy.sh
+      install: skip
+      if: tag IS present
+
+      # osx cp36 & cp37
+    - stage: test
+      os: osx
+      script: travis/deploy-osx.sh
       install: skip
       if: tag IS present

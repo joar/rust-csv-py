@@ -65,6 +65,8 @@ build_wheel() {
 build_wheels()  {
     install_rust
 
+    WHEELHOUSE="${WHEELHOUSE:-"/io/wheelhouse"}"
+
     PYBINS="$(list_pybins "$@")"
     if test -z "$PYBINS"; then
         printf "\x1b[31m%s\x1b[0m\n" "No python versions found for $@"
@@ -80,13 +82,13 @@ build_wheels()  {
     # Bundle external shared libraries into the wheels
     # ================================================
     for whl in wheelhouse/*.whl; do
-        auditwheel repair "$whl" -w /io/wheels/
+        auditwheel repair "$whl" -w "$WHEELHOUSE"
     done
 
     # Install packages and test
     # =========================
     for PYBIN in $PYBINS; do
-        "${PYBIN}/pip" install rustcsv --no-index -f /io/wheels
+        "${PYBIN}/pip" install rustcsv --no-index -f "$WHEELHOUSE"
         (cd "$HOME"; "${PYBIN}/py.test" --pyargs rustcsv)
     done
 }

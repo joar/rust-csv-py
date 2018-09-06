@@ -6,6 +6,7 @@ RUST_EXTENSION_DEBUG ?= True
 RUST_EXTENSION_NATIVE ?= False
 MANYLINUX_IMAGE ?= quay.io/pypa/manylinux1_x86_64
 MANYLINUX_PYTHON_VERSIONS ?= cp36 cp37
+WHEELHOUSE = wheelhouse
 
 .PHONY: default
 default:
@@ -69,15 +70,15 @@ build-manylinux-wheels: | requirements-files
 		-v $(shell pwd):/io \
 		--env RUST_EXTENSION_DEBUG=$(RUST_EXTENSION_DEBUG) \
 		--env RUST_EXTENSION_NATIVE=$(RUST_EXTENSION_NATIVE) \
+		--env WHEELHOUSE=/io/$(WHEELHOUSE) \
 		$(MANYLINUX_IMAGE) \
 		/io/travis/build-wheels.sh $(MANYLINUX_PYTHON_VERSIONS)
 
-.PHONY: build-release-manylinux-wheels
-build-release-manylinux-wheels:
-	make \
-		RUST_EXTENSION_DEBUG=False \
-		RUST_EXTENSION_NATIVE=False \
-		build-manylinux-wheels
+.PHONY: build-osx-wheel
+build-osx-wheel:
+	$(PY_RUN) env \
+		CIBW_SKIP="cp27-* cp34-* cp35-*" \
+		cibuildwheel --output-dir $(WHEELHOUSE)
 
 .PHONY: publish-test
 publish-test:
@@ -86,7 +87,7 @@ publish-test:
 	$(PY_RUN) twine upload \
 		--repository-url https://test.pypi.org/legacy/ \
 		--username testrustcsv \
-		wheels/*
+		$(WHEELHOUSE)/*
 
 # pytest options
 PYTEST_OPTS ?= -vv --showlocals
