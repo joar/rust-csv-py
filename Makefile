@@ -75,7 +75,7 @@ build-wheels-manylinux: | requirements-files
 		/io/travis/build-wheels-manylinux.sh $(WHEEL_PYTHON_VERSIONS)
 
 .PHONY: build-osx-wheel
-build-wheels-oxs:
+build-wheels-osx:
 	$(PY_RUN) env \
 		CIBW_SKIP="cp27-* cp34-* cp35-*" \
 		cibuildwheel --output-dir $(WHEELHOUSE)
