@@ -8,7 +8,7 @@ click = "*"
 attrs = "*"
 
 [dev-packages]
-ipython = "*"
+ipython = { version = "*", markers = "python_version >= '3.6'" }
 pytest = "*"
 black = { version = "==18.6b4", markers = "python_version  >= '3.6'"}
 isort = "*"
