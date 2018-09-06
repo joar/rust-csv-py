@@ -1,10 +1,43 @@
 #!/bin/bash
+# script directory, e.g. "<git-repo>/travis/"
+TRAVIS_DIR="$(dirname "${BASH_SOURCE[0]}")"
+# shellcheck source=travis/_output_helpers.sh
+source "$TRAVIS_DIR/_output_helpers.sh"
 
 # Install a system package required by our library
 # yum install -y openssl-devel
 
-green() {
-    printf "\x1b[32m%s\x1b[0m\n" "$@" >&2
+build_wheels()  {
+    bash "$TRAVIS_DIR"/install_rust.sh
+
+    # Parameters
+    WHEELHOUSE="${WHEELHOUSE:-"/io/wheelhouse"}"
+    local SELECTED_VERSIONS=("$@")
+
+    PYBINS="$(list_pybins "$@")"
+    if test -z "$PYBINS"; then
+        red "No python versions found for ${SELECTED_VERSIONS[@]}"
+    fi
+
+    # Compile wheels
+    # ==============
+    for PYBIN in $PYBINS; do
+        green "Building wheel for $("${PYBIN}/python" --version)"
+        build_wheel "$PYBIN"
+    done
+
+    # Bundle external shared libraries into the wheels
+    # ================================================
+    for whl in wheelhouse/*.whl; do
+        auditwheel repair "$whl" -w "$WHEELHOUSE"
+    done
+
+    # Install packages and test
+    # =========================
+    for PYBIN in $PYBINS; do
+        "${PYBIN}/pip" install rustcsv --no-index -f "$WHEELHOUSE"
+        (cd "$HOME"; "${PYBIN}/py.test" --pyargs rustcsv)
+    done
 }
 
 install_rust() {
@@ -60,37 +93,6 @@ build_wheel() {
     env_vars+=('LD_LIBRARY_PATH='"$PYTHON_LIB:$RUST_LIB_PATH:$LD_LIBRARY_PATH")
     "${PYBIN}/pip" install -r /io/dev-requirements.txt
     env "${env_vars[@]}" "${PYBIN}/pip" wheel /io/ -w wheelhouse/
-}
-
-build_wheels()  {
-    install_rust
-
-    WHEELHOUSE="${WHEELHOUSE:-"/io/wheelhouse"}"
-
-    PYBINS="$(list_pybins "$@")"
-    if test -z "$PYBINS"; then
-        printf "\x1b[31m%s\x1b[0m\n" "No python versions found for $@"
-    fi
-
-    # Compile wheels
-    # ==============
-    for PYBIN in $PYBINS; do
-        green "Building wheel for $("${PYBIN}/python" --version)"
-        build_wheel "$PYBIN"
-    done
-
-    # Bundle external shared libraries into the wheels
-    # ================================================
-    for whl in wheelhouse/*.whl; do
-        auditwheel repair "$whl" -w "$WHEELHOUSE"
-    done
-
-    # Install packages and test
-    # =========================
-    for PYBIN in $PYBINS; do
-        "${PYBIN}/pip" install rustcsv --no-index -f "$WHEELHOUSE"
-        (cd "$HOME"; "${PYBIN}/py.test" --pyargs rustcsv)
-    done
 }
 
 if [[ "${BASH_SOURCE[0]}" = "${0}" ]]; then

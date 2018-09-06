@@ -1,18 +1,23 @@
 #!/bin/bash
+# script directory, e.g. "<git-repo>/travis/"
+TRAVIS_DIR="$(dirname "${BASH_SOURCE[0]}")"
+# shellcheck source=travis/_output_helpers.sh
+source "$TRAVIS_DIR/_output_helpers.sh"
 
-install_rust() {
-    # install rust + cargo nightly
-    # ============================
-    export RUST_VERSION=nightly
-    CARGO_BIN=$HOME/.cargo/bin
-    if ! test -d "$CARGO_BIN"; then
-        green "Installing rust + cargo"
-        curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUST_VERSION
-    fi
-    if ! grep "$CARGO_BIN" <<<"$PATH" &> /dev/null; then
-        green "Addigng $CARGO_BIN to \$PATH"
-        export PATH="$CARGO_BIN:$PATH"
-    fi
+build_wheels() {
+    set -x
+    WHEELHOUSE="${WHEELHOUSE:-"wheelhouse"}"
+    declare -a ENABLED_VERSIONS=("${@}")
+
+    bash "$TRAVIS_DIR"/install_rust.sh
+
+    pip install -U cibuildwheel
+
+    export CIBW_BEFORE_BUILD="bash -x ${TRAVIS_DIR}/build-wheels-osx_before-build.sh"
+    export CIBW_TEST_COMMAND="py.test --pyargs rustcsv"
+    CIBW_SKIP="$(skipped_versions "${ENABLED_VERSIONS[@]}")"
+    export CIBW_SKIP
+    cibuildwheel --output-dir "$WHEELHOUSE"
 }
 
 skipped_versions() {
@@ -26,19 +31,9 @@ skipped_versions() {
     done
 }
 
-
-build_wheels() {
-    WHEELHOUSE="${WHEELHOUSE:-"wheelhouse"}"
-    declare -a ENABLED_VERSIONS=("${@}")
-
-    install_rust
-
-    pip install -U cibuildwheel
-    export CIBW_BEFORE_BUILD="make requirements-files && pip install -r requirements.txt && pip install -r dev-requirements.txt"
-    export CIBW_TEST_COMMAND="py.test --pyargs rustcsv"
-    CIBW_SKIP="$(skipped_versions "${ENABLED_VERSIONS[@]}")"
-    export CIBW_SKIP
-    cibuildwheel --output-dir "$WHEELHOUSE"
-}
-
-build_wheels "$@"
+if [[ "${BASH_SOURCE[0]}" = "${0}" ]]; then
+    set -e -x
+    build_wheels "$@"
+else
+    echo "Script was sourced, not executing build_wheels" >&2
+fi
