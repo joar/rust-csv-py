@@ -34,6 +34,14 @@ jobs:
       env:
         - TARGET=benchmark-full
 
+      # osx cp36 & cp37
+    - stage: test
+      os: osx
+      language: generic
+      script: travis/deploy-osx.sh
+      install: skip
+      if: tag IS present
+
       # manylinux cp36
     - stage: test
       services:
@@ -54,10 +62,3 @@ jobs:
       install: skip
       if: tag IS present
 
-      # osx cp36 & cp37
-    - stage: test
-      os: osx
-      language: generic
-      script: travis/deploy-osx.sh
-      install: skip
-      if: tag IS present
