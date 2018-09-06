@@ -38,10 +38,14 @@ jobs:
     - stage: test
       os: osx
       language: generic
+      env:
+        - WHEEL_PYTHON_VERSIONS=cp36 cp37
       script: travis/deploy-osx.sh
-      # osx only has python 2.7 at the moment
-      # https://github.com/travis-ci/travis-ci/issues/9744
-      before_install: skip
+      before_install:
+        # osx only has python 2.7 at the moment
+        # https://github.com/travis-ci/travis-ci/issues/9744
+        - pip install -U pip setuptool
+        - pip install -U pipenv
       install: skip
       if: tag IS present
 
@@ -50,7 +54,7 @@ jobs:
       services:
         - docker
       env:
-        - MANYLINUX_PYTHON_VERSIONS=cp36
+        - WHEEL_PYTHON_VERSIONS=cp36
       script: bash travis/deploy.sh
       install: skip
       if: tag IS present
@@ -60,7 +64,7 @@ jobs:
       services:
         - docker
       env:
-        - MANYLINUX_PYTHON_VERSIONS=cp37
+        - WHEEL_PYTHON_VERSIONS=cp37
       script: travis/deploy.sh
       install: skip
       if: tag IS present

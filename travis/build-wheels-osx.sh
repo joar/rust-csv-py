@@ -32,8 +32,9 @@ build_wheels() {
     declare -a ENABLED_VERSIONS=("${@}")
 
     install_rust
+
     pip install -U cibuildwheel
-    export CIBW_BEFORE_BUILD="pip install -r requirements.txt && pip install -r dev-requirements.txt"
+    export CIBW_BEFORE_BUILD="make requirements-files && pip install -r requirements.txt && pip install -r dev-requirements.txt"
     export CIBW_TEST_COMMAND="py.test --pyargs rustcsv"
     CIBW_SKIP="$(skipped_versions "${ENABLED_VERSIONS[@]}")"
     export CIBW_SKIP
