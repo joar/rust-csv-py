@@ -2,4 +2,4 @@
 
 pip install cibuildwheel
 
-make clean build-osx-wheel publish-test
+make clean build-wheels-osx publish-test

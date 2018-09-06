@@ -57,6 +57,7 @@ jobs:
       # osx cp36 & cp37
     - stage: test
       os: osx
+      language: generic
       script: travis/deploy-osx.sh
       install: skip
       if: tag IS present

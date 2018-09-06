@@ -5,7 +5,7 @@ PY_RUN ?= pipenv run
 RUST_EXTENSION_DEBUG ?= True
 RUST_EXTENSION_NATIVE ?= False
 MANYLINUX_IMAGE ?= quay.io/pypa/manylinux1_x86_64
-MANYLINUX_PYTHON_VERSIONS ?= cp36 cp37
+WHEEL_PYTHON_VERSIONS ?= cp36 cp37
 WHEELHOUSE = wheelhouse
 
 .PHONY: default
@@ -65,17 +65,17 @@ requirements-files:
 	$(PY_RUN) pipenv lock --requirements --dev > dev-requirements.txt
 
 .PHONY: build-manylinux-wheels
-build-manylinux-wheels: | requirements-files
+build-wheels-manylinux: | requirements-files
 	docker run --rm -it \
 		-v $(shell pwd):/io \
 		--env RUST_EXTENSION_DEBUG=$(RUST_EXTENSION_DEBUG) \
 		--env RUST_EXTENSION_NATIVE=$(RUST_EXTENSION_NATIVE) \
 		--env WHEELHOUSE=/io/$(WHEELHOUSE) \
 		$(MANYLINUX_IMAGE) \
-		/io/travis/build-wheels.sh $(MANYLINUX_PYTHON_VERSIONS)
+		/io/travis/build-wheels-manylinux.sh $(WHEEL_PYTHON_VERSIONS)
 
 .PHONY: build-osx-wheel
-build-osx-wheel:
+build-wheels-oxs:
 	$(PY_RUN) env \
 		CIBW_SKIP="cp27-* cp34-* cp35-*" \
 		cibuildwheel --output-dir $(WHEELHOUSE)
