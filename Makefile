@@ -10,7 +10,10 @@ WHEELHOUSE = wheelhouse
 
 .PHONY: default
 default:
-	# Nothing
+	# Do nothing by default
+
+# Development
+# ===========
 
 .PHONY: black
 black:
@@ -46,48 +49,8 @@ clean: | setuptools-clean
 setuptools-clean:
 	$(PY_RUN) python setup.py clean
 
-# Release management
-# ==============================================================================
-
-.PHONY: build-release
-build-release-sdist:
-	$(PY_RUN) env \
-		RUST_EXTENSION_DEBUG=False \
-		RUST_EXTENSION_NATIVE=True \
-		python setup.py \
-		sdist
-
-.PHONY: reqirements-files
-requirements-files:
-	# Generate reqirements file
-	$(PY_RUN) pipenv lock --requirements > requirements.txt
-	# Generate dev reqirements file
-	$(PY_RUN) pipenv lock --requirements --dev > dev-requirements.txt
-
-.PHONY: build-manylinux-wheels
-build-wheels-manylinux: | requirements-files
-	docker run --rm -it \
-		-v $(shell pwd):/io \
-		--env RUST_EXTENSION_DEBUG=$(RUST_EXTENSION_DEBUG) \
-		--env RUST_EXTENSION_NATIVE=$(RUST_EXTENSION_NATIVE) \
-		--env WHEELHOUSE=/io/$(WHEELHOUSE) \
-		$(MANYLINUX_IMAGE) \
-		/io/travis/build-wheels-manylinux.sh $(WHEEL_PYTHON_VERSIONS)
-
-.PHONY: build-osx-wheel
-build-wheels-osx: | reqirements-files
-	$(PY_RUN) env \
-		WHEELHOUSE=$(WHEELHOUSE) \
-		bash travis/build-wheels-osx.sh $(WHEEL_PYTHON_VERSIONS)
-
-.PHONY: publish-test
-publish-test:
-	# Publish wheels to Test PyPI:
-	# https://packaging.python.org/guides/using-testpypi/
-	$(PY_RUN) twine upload \
-		--repository-url https://test.pypi.org/legacy/ \
-		--username testrustcsv \
-		$(WHEELHOUSE)/*
+# Testing
+# =======
 
 # pytest options
 PYTEST_OPTS ?= -vv --showlocals
@@ -124,3 +87,57 @@ benchmark: | develop-release
 .PHONY: benchmark-full
 benchmark-full:
 	make BENCHMARK_FULL=1 benchmark
+
+# Release management
+# ==================
+
+.PHONY: build-release
+build-release-sdist:
+	$(PY_RUN) env \
+		RUST_EXTENSION_DEBUG=False \
+		RUST_EXTENSION_NATIVE=True \
+		python setup.py \
+		sdist
+
+.PHONY: reqirements-files
+requirements-files:
+	# Generate reqirements file
+	$(PY_RUN) pipenv lock --requirements > requirements.txt
+	# Generate dev reqirements file
+	$(PY_RUN) pipenv lock --requirements --dev > dev-requirements.txt
+
+.PHONY: build-manylinux-wheels
+build-wheels-manylinux: | requirements-files
+	docker run --rm -it \
+		-v $(shell pwd):/io \
+		--env RUST_EXTENSION_DEBUG=$(RUST_EXTENSION_DEBUG) \
+		--env RUST_EXTENSION_NATIVE=$(RUST_EXTENSION_NATIVE) \
+		--env WHEELHOUSE=/io/$(WHEELHOUSE) \
+		$(MANYLINUX_IMAGE) \
+		/io/travis/build-wheels-manylinux.sh $(WHEEL_PYTHON_VERSIONS)
+
+.PHONY: build-sdist
+build-sdist:
+	$(PY_RUN) python setup.py sdist
+
+.PHONY: build-osx-wheel
+build-wheels-osx: | reqirements-files
+	$(PY_RUN) env \
+		WHEELHOUSE=$(WHEELHOUSE) \
+		bash travis/build-wheels-osx.sh $(WHEEL_PYTHON_VERSIONS)
+
+.PHONY: publish-wheelhouse
+publish-wheelhouse:
+	# Publish files in $(WHEELHOUSE) to PyPI
+	$(PY_RUN) twine upload \
+		--username rustcsv \
+		$(WHEELHOUSE)/*
+
+.PHONY: publish-wheelhouse-test
+publish-wheelhouse-test:
+	# Publish files in $(WHEELHOUSE) to Test PyPI:
+	# https://packaging.python.org/guides/using-testpypi/
+	$(PY_RUN) twine upload \
+		--repository-url https://test.pypi.org/legacy/ \
+		--username testrustcsv \
+		$(WHEELHOUSE)/*

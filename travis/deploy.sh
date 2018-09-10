@@ -3,4 +3,4 @@ set -e -x
 
 which twine || pip install -U twine
 
-make clean build-wheels-manylinux publish-test
+make clean build-wheels-manylinux publish-wheelhouse-test

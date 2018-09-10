@@ -54,6 +54,10 @@ jobs:
       install: skip
       if: tag IS present
 
+    - stage: test
+      script: make clean build-sdist publish-wheelhouse-test
+      if: tag IS present
+
 # Installing dependencies on travis osx is hell
 #       # osx cp36 & cp37
 #     - stage: test

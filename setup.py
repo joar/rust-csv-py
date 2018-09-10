@@ -21,7 +21,7 @@ def get_env_bool(key, default=None):
         )
 
 
-RUST_EXTENSION_DEBUG = get_env_bool("RUST_EXTENSION_DEBUG", True)
+RUST_EXTENSION_DEBUG = get_env_bool("RUST_EXTENSION_DEBUG", False)
 RUST_EXTENSION_NATIVE = get_env_bool("RUST_EXTENSION_NATIVE", False)
 
 try:
@@ -53,7 +53,7 @@ class PyTest(TestCommand):
 
 
 setup_requires = ["setuptools-rust>=0.10.1", "setuptools_scm>=3.1.0"]
-install_requires = []
+install_requires = ["attrs >= 18.2.0", "click >= 6.7"]
 tests_require = install_requires + ["pytest", "pytest-benchmark"]
 
 LONG_DESCRIPTION = None
