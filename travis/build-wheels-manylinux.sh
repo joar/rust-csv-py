@@ -8,15 +8,15 @@ source "$TRAVIS_DIR/_output_helpers.sh"
 # yum install -y openssl-devel
 
 build_wheels()  {
-    bash "$TRAVIS_DIR"/install-rust.sh
+    source "$TRAVIS_DIR"/install-rust.sh  # re-exports $PATH
 
     # Parameters
     WHEELHOUSE="${WHEELHOUSE:-"/io/wheelhouse"}"
     local SELECTED_VERSIONS=("$@")
 
-    PYBINS="$(list_pybins "$@")"
+    PYBINS="$(list_pybins "${SELECTED_VERSIONS[@]}")"
     if test -z "$PYBINS"; then
-        red "No python versions found for ${SELECTED_VERSIONS[@]}"
+        red "No python versions found for ${SELECTED_VERSIONS[*]}"
     fi
 
     # Compile wheels
@@ -48,7 +48,7 @@ list_pybins() {
             if ! grep -E "cp34|cp35" <<<"$bin" &> dev/null; then
                 echo "$bin"
             else
-                echo "Skipping $bin" >&2
+                yellow "Skipping $bin"
             fi
         done
     done
@@ -84,5 +84,5 @@ if [[ "${BASH_SOURCE[0]}" = "${0}" ]]; then
     set -e -x
     build_wheels "$@"
 else
-    echo "Script was sourced, not executing build_wheels" >&2
+    yellow "Script was sourced, not executing build_wheels"
 fi

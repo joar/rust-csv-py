@@ -24,8 +24,9 @@ install_rust() {
 
 
 if [[ "${BASH_SOURCE[0]}" = "${0}" ]]; then
-    set -e -x
-    install_rust "$@"
+    red "The script should be sourced so that it's able to export \$PATH." \
+        "e.g. 'source ${BASH_SOURCE[@]}' will install rust and re-export \$PATH"
+    exit 1
 else
-    echo "Script was sourced, not executing install_rust" >&2
+    install_rust "$@"
 fi

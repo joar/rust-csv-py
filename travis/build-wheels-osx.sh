@@ -9,7 +9,7 @@ build_wheels() {
     WHEELHOUSE="${WHEELHOUSE:-"wheelhouse"}"
     declare -a ENABLED_VERSIONS=("${@}")
 
-    bash "$TRAVIS_DIR"/install-rust.sh
+    source "$TRAVIS_DIR"/install-rust.sh  # re-exports $PATH
 
     pip install -U cibuildwheel
 
@@ -35,5 +35,5 @@ if [[ "${BASH_SOURCE[0]}" = "${0}" ]]; then
     set -e -x
     build_wheels "$@"
 else
-    echo "Script was sourced, not executing build_wheels" >&2
+    echo "Script was sourced, not executing build_wheels"
 fi
