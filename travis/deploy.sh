@@ -1,4 +1,4 @@
 #!/bin/bash
 set -e -x
 
-make clean build-wheels-manylinux publish-wheelhouse-test
+make clean build-wheels-manylinux publish-wheelhouse

@@ -63,7 +63,7 @@ jobs:
 
     - stage: test
       install: skip
-      script: make clean build-sdist publish-wheelhouse-test
+      script: make clean build-sdist publish-wheelhouse
       if: tag IS present
 
 # Installing dependencies on travis osx is hell
