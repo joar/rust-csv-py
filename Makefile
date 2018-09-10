@@ -2,8 +2,8 @@
 PY_RUN ?= pipenv run
 # Triggers the --release flag on or off when setup.py is building the rust
 # extension module.
-RUST_EXTENSION_DEBUG ?= True
-RUST_EXTENSION_NATIVE ?= False
+RUSTCSV_BUILD_DEBUG ?= True
+RUSTCSV_BUILD_NATIVE ?= False
 MANYLINUX_IMAGE ?= quay.io/pypa/manylinux1_x86_64
 WHEEL_PYTHON_VERSIONS ?= cp36 cp37
 WHEELHOUSE = wheelhouse
@@ -32,14 +32,14 @@ develop:
 .PHONY: develop-debug
 develop-debug:
 	make \
-		RUST_EXTENSION_DEBUG=True \
+		RUSTCSV_BUILD_DEBUG=True \
 		develop
 
 .PHONY: develop-release
 develop-release:
 	make \
-		RUST_EXTENSION_DEBUG=False \
-		RUST_EXTENSION_NATIVE=True \
+		RUSTCSV_BUILD_DEBUG=False \
+		RUSTCSV_BUILD_NATIVE=True \
 		develop
 
 .PHONY: clean
@@ -94,8 +94,8 @@ benchmark-full:
 .PHONY: build-release
 build-release-sdist:
 	$(PY_RUN) env \
-		RUST_EXTENSION_DEBUG=False \
-		RUST_EXTENSION_NATIVE=True \
+		RUSTCSV_BUILD_DEBUG=False \
+		RUSTCSV_BUILD_NATIVE=True \
 		python setup.py \
 		sdist
 
@@ -110,8 +110,8 @@ requirements-files:
 build-wheels-manylinux: | requirements-files
 	docker run --rm -it \
 		-v $(shell pwd):/io \
-		--env RUST_EXTENSION_DEBUG=$(RUST_EXTENSION_DEBUG) \
-		--env RUST_EXTENSION_NATIVE=$(RUST_EXTENSION_NATIVE) \
+		--env RUSTCSV_BUILD_DEBUG=$(RUSTCSV_BUILD_DEBUG) \
+		--env RUSTCSV_BUILD_NATIVE=$(RUSTCSV_BUILD_NATIVE) \
 		--env WHEELHOUSE=/io/$(WHEELHOUSE) \
 		$(MANYLINUX_IMAGE) \
 		/io/travis/build-wheels-manylinux.sh $(WHEEL_PYTHON_VERSIONS)

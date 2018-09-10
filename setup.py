@@ -21,8 +21,8 @@ def get_env_bool(key, default=None):
         )
 
 
-RUST_EXTENSION_DEBUG = get_env_bool("RUST_EXTENSION_DEBUG", False)
-RUST_EXTENSION_NATIVE = get_env_bool("RUST_EXTENSION_NATIVE", False)
+RUSTCSV_BUILD_DEBUG = get_env_bool("RUSTCSV_BUILD_DEBUG", False)
+RUSTCSV_BUILD_NATIVE = get_env_bool("RUSTCSV_BUILD_NATIVE", False)
 
 try:
     from setuptools_rust import RustExtension, Binding
@@ -85,8 +85,8 @@ setup(
             "rustcsv._rustcsv",
             "Cargo.toml",
             binding=Binding.PyO3,
-            native=RUST_EXTENSION_NATIVE,
-            debug=RUST_EXTENSION_DEBUG,
+            native=RUSTCSV_BUILD_NATIVE,
+            debug=RUSTCSV_BUILD_DEBUG,
         )
     ],
     entry_points={"console_scripts": ["rustcsv=rustcsv.__main__:cli"]},
