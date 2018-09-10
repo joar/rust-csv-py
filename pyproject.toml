@@ -1,3 +1,5 @@
+[build-system]
+requires = ["setuptools-rust", "setuptools", "wheel", "setuptools_scm"]
 
 [tool.black]
 line-length = 79

@@ -41,8 +41,6 @@ impl CSVWriter {
         double_quote: Option<bool>,
         quote_style: Option<String>,
     ) -> PyResult<()> {
-        let gil = Python::acquire_gil();
-        let py = gil.python();
         let writer = csv::WriterBuilder::new()
             .double_quote(double_quote.unwrap_or(true))
             .terminator(csv::Terminator::Any(get_optional_single_byte(

@@ -1,0 +1,15 @@
+recursive-include src *.rs
+include *.rst
+include *.toml
+include Cargo.toml
+include MANIFEST.in
+
+# Exclude git stuff
+exclude .gitignore .gitmodules
+
+# Exclude travis
+recursive-exclude travis *
+exclude .travis.yml
+
+# Exclude development files
+exclude Makefile .pre-commit-config.yaml

@@ -1,21 +1,83 @@
+dist: xenial
+sudo: required
+
 language: python
 python:
-  - "3.6"
-dist: xenial
+- '3.6'
 
 cache:
-  # caches $HOME/.cargo and $TRAVIS_BUILD_DIR/target
-  - cargo
-
+  directories:
+    - $HOME/.cargo
+    - $HOME/.cache/pip
 env:
-  - RUST_VERSION=nightly
+  global:
+    - RUST_VERSION=nightly
+    - RUSTCSV_BUILD_DEBUG=False
+
+before_install:
+- pip install --upgrade pip
+- pip install --upgrade pipenv
+- pip install --upgrade twine  # Used by publish scripts
+- pipenv install --dev --deploy
 
 install:
-  - pip install pipenv
-  - pipenv install --dev --deploy
-  - curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUST_VERSION
-  - export PATH="$HOME/.cargo/bin:$PATH"
-  - make develop-release
+- curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUST_VERSION
+- export PATH="$HOME/.cargo/bin:$PATH"
+- make develop-release
 
-script:
-  - make test benchmark-full
+jobs:
+  include:
+    - stage: test
+      script: make test
+      env:
+        - TARGET=test
+
+    - stage: test
+      script: make benchmark-full
+      env:
+        - TARGET=benchmark-full
+
+      # manylinux cp36
+    - stage: test
+      services:
+        - docker
+      env:
+        - WHEEL_PYTHON_VERSIONS=cp36
+          # The wheels should be portable
+        - RUSTCSV_BUILD_NATIVE=False
+      script: bash travis/deploy.sh
+      install: skip
+      if: tag IS present
+
+      # manylinux cp37
+    - stage: test
+      services:
+        - docker
+      env:
+        - WHEEL_PYTHON_VERSIONS=cp37
+          # The wheels should be portable
+        - RUSTCSV_BUILD_NATIVE=False
+      script: travis/deploy.sh
+      install: skip
+      if: tag IS present
+
+    - stage: test
+      install: skip
+      script: make clean build-sdist publish-wheelhouse-test
+      if: tag IS present
+
+# Installing dependencies on travis osx is hell
+#       # osx cp36 & cp37
+#     - stage: test
+#       os: osx
+#       language: generic
+#       env:
+#         - WHEEL_PYTHON_VERSIONS=cp36 cp37
+#       script: travis/deploy-osx.sh
+#       before_install:
+#         # osx only has python 2.7 at the moment
+#         # https://github.com/travis-ci/travis-ci/issues/9744
+#         - pip install -U pip
+#         - pip install -U pipenv
+#       install: skip
+#       if: tag IS present
