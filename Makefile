@@ -118,7 +118,7 @@ build-wheels-manylinux: | requirements-files
 
 .PHONY: build-sdist
 build-sdist:
-	$(PY_RUN) python setup.py sdist
+	$(PY_RUN) python setup.py sdist --dist-dir $(WHEELHOUSE)
 
 .PHONY: build-osx-wheel
 build-wheels-osx: | reqirements-files
