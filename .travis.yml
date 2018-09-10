@@ -8,13 +8,16 @@ python:
 cache:
   directories:
     - $HOME/.cargo
+    - $HOME/.cache/pip
 env:
   global:
     - RUST_VERSION=nightly
     - RUSTCSV_BUILD_DEBUG=False
 
 before_install:
-- pip install pipenv
+- pip install --upgrade pip
+- pip install --upgrade pipenv
+- pip install --upgrade twine  # Used by publish scripts
 - pipenv install --dev --deploy
 
 install:
@@ -59,6 +62,7 @@ jobs:
       if: tag IS present
 
     - stage: test
+      install: skip
       script: make clean build-sdist publish-wheelhouse-test
       if: tag IS present
 
