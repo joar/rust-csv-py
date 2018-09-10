@@ -40,6 +40,8 @@ jobs:
         - docker
       env:
         - WHEEL_PYTHON_VERSIONS=cp36
+          # The wheels should be portable
+        - RUSTCSV_BUILD_NATIVE=False
       script: bash travis/deploy.sh
       install: skip
       if: tag IS present
@@ -50,6 +52,8 @@ jobs:
         - docker
       env:
         - WHEEL_PYTHON_VERSIONS=cp37
+          # The wheels should be portable
+        - RUSTCSV_BUILD_NATIVE=False
       script: travis/deploy.sh
       install: skip
       if: tag IS present

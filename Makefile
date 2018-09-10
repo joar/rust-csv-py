@@ -3,7 +3,7 @@ PY_RUN ?= pipenv run
 # Triggers the --release flag on or off when setup.py is building the rust
 # extension module.
 RUSTCSV_BUILD_DEBUG ?= True
-RUSTCSV_BUILD_NATIVE ?= False
+RUSTCSV_BUILD_NATIVE ?= True
 MANYLINUX_IMAGE ?= quay.io/pypa/manylinux1_x86_64
 WHEEL_PYTHON_VERSIONS ?= cp36 cp37
 WHEELHOUSE = wheelhouse

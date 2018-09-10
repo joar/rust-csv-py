@@ -22,7 +22,7 @@ def get_env_bool(key, default=None):
 
 
 RUSTCSV_BUILD_DEBUG = get_env_bool("RUSTCSV_BUILD_DEBUG", False)
-RUSTCSV_BUILD_NATIVE = get_env_bool("RUSTCSV_BUILD_NATIVE", False)
+RUSTCSV_BUILD_NATIVE = get_env_bool("RUSTCSV_BUILD_NATIVE", True)
 
 try:
     from setuptools_rust import RustExtension, Binding
