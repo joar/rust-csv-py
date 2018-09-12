@@ -101,6 +101,14 @@ benchmark-full:
 docs:
 	make -C doc html
 
+.PHONY: docs-apidoc
+docs-apidoc:
+	sphinx-apidoc -o doc/source/api/ -H "API" rustcsv 'test_*'
+
+.PHONY: docs-autobuild
+docs-autobuild:
+	sphinx-autobuild -p 8001 doc/source/ doc/build/html/
+
 # Release management
 # ==================
 

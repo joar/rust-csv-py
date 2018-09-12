@@ -1,8 +1,8 @@
 #![feature(specialization, extern_prelude, core_intrinsics)]
 
+extern crate built;
 extern crate csv;
 extern crate env_logger;
-extern crate built;
 #[macro_use]
 extern crate log;
 #[macro_use]
@@ -23,9 +23,8 @@ pub mod built_info {
 }
 macro_rules! pyo3_built {
     ($py: ident, $info: ident) => {{
-
-        use $crate::pyo3::prelude::PyDict;
         use $crate::built::util::strptime;
+        use $crate::pyo3::prelude::PyDict;
 
         let info = PyDict::new($py);
 
@@ -57,7 +56,8 @@ macro_rules! pyo3_built {
         // Features
         let features = $info::FEATURES
             .iter()
-            .map(|feat| PyString::new($py, feat)).collect::<Vec<_>>();
+            .map(|feat| PyString::new($py, feat))
+            .collect::<Vec<_>>();
         info.set_item("features", features)?;
 
         // Host
@@ -81,7 +81,6 @@ macro_rules! pyo3_built {
     }};
 }
 
-
 // Add bindings to the generated python module
 // N.B: names: "_rustcsv" must be the name of the `.so` or `.pyd` file
 /// PyO3 + rust-csv
@@ -95,4 +94,3 @@ pub fn rustcsv(_py: Python, m: &PyModule) -> PyResult<()> {
     m.add::<PyObject>("__build__", pyo3_built!(_py, built_info))?;
     Ok(())
 }
-

@@ -78,6 +78,10 @@ impl CSVReader {
         delimiter: Option<&PyBytes>,
         terminator: Option<&PyBytes>,
     ) -> PyResult<()> {
+        debug!(
+            "__new__: path_or_fd: {:?}, delimiter: {:?}, terminator: {:?}",
+            path_or_fd, delimiter, terminator
+        );
         let gil = Python::acquire_gil();
         let py = gil.python();
 
@@ -98,7 +102,10 @@ impl CSVReader {
             Ok(iter) => obj.init(|token| CSVReader { token, iter }),
             Err(error) => match error.into_kind() {
                 csv::ErrorKind::Io(err) => Err(err.into()),
-                err => Err(exc::IOError::py_err(format!("Could not parse CSV: {:?}", err))),
+                err => Err(exc::IOError::py_err(format!(
+                    "Could not parse CSV: {:?}",
+                    err
+                ))),
             },
         }
     }
