@@ -1,11 +1,10 @@
 from __future__ import absolute_import
 
-import logging
+from .rustcsv import CSVReader, CSVWriter, __build__
 
-from ._rustcsv import CSVReader as _CSVReader, CSVWriter as _CSVWriter
+try:
+    from ._version import version
+except ImportError:
+    version = "UNKNOWN"
 
-__all__ = ["CSVReader", "CSVWriter"]
-
-
-CSVReader = _CSVReader
-CSVWriter = _CSVWriter
+__all__ = ["CSVReader", "CSVWriter", "__build__", "version"]

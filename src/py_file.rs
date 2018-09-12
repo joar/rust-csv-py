@@ -34,7 +34,7 @@ impl PyFile {
 
         match file_like.getattr(py, "read") {
             Ok(_) => Ok(PyFile { file_like }),
-            Err(error) => Err(exc::TypeError::new(format!(
+            Err(error) => Err(exc::TypeError::py_err(format!(
                 "Expected a file-like object, got {:?} (original error: {:?})",
                 file_like.as_ref(py),
                 error.to_object(py).as_ref(py)
@@ -66,7 +66,7 @@ impl PyFile {
             Ok(r) => Ok(Box::new(r)),
             //
             Err(error) => if py.is_instance::<PyString, _>(call_result.as_ref(py))? {
-                return Err(exc::TypeError::new(format!(
+                return Err(exc::TypeError::py_err(format!(
                     "The file {:?} is not open in binary mode. (Cause: {:?})",
                     self.file_like.as_ref(py),
                     error.to_object(py).as_ref(py),
@@ -116,7 +116,8 @@ impl Write for PyFile {
 }
 
 impl Read for PyFile {
-    /// Reads bytes from the [`PyFile.file_like`] [`PyObject`] via [`PyFile.read_bytes`].
+    /// Reads bytes from the [`PyFile.file_like`] [`PyObject`] via
+    /// [`PyFile.read_bytes`].
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         debug!("buf.len(): {:?}", buf.len());
         match self.read_bytes(buf.len()) {

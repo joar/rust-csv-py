@@ -98,7 +98,7 @@ impl CSVReader {
             Ok(iter) => obj.init(|token| CSVReader { token, iter }),
             Err(error) => match error.into_kind() {
                 csv::ErrorKind::Io(err) => Err(err.into()),
-                err => Err(exc::IOError::new(format!("Could not parse CSV: {:?}", err))),
+                err => Err(exc::IOError::py_err(format!("Could not parse CSV: {:?}", err))),
             },
         }
     }
@@ -147,7 +147,7 @@ impl PyIterProtocol for CSVReader {
                             Some(p) => Some(make_error_position(p.clone())?),
                             None => None,
                         };
-                        Err(UTF8Error::new((format!("{:?}", err), position)))
+                        Err(UTF8Error::py_err((format!("{:?}", err), position)))
                     }
                     csv::ErrorKind::UnequalLengths {
                         pos,
@@ -158,7 +158,7 @@ impl PyIterProtocol for CSVReader {
                             Some(p) => Some(make_error_position(p.clone())?),
                             None => None,
                         };
-                        Err(UnequalLengthsError::new((
+                        Err(UnequalLengthsError::py_err((
                             format!(
                                 "Unequal lengths: Expected length {:?} got length {:?}",
                                 expected_len, len,
@@ -166,7 +166,7 @@ impl PyIterProtocol for CSVReader {
                             position,
                         )))
                     }
-                    not_io_error => Err(exc::ValueError::new(format!(
+                    not_io_error => Err(exc::ValueError::py_err(format!(
                         "CSV parsing error: {:?}",
                         not_io_error
                     ))),

@@ -10,7 +10,8 @@ WHEELHOUSE = wheelhouse
 
 .PHONY: default
 default:
-	# Do nothing by default
+	# Do nothing and fail if no target specified
+	false
 
 # Development
 # ===========
@@ -70,6 +71,11 @@ test:
 		--benchmark-skip \
 		$(PYTEST_TEST_OPTS)
 
+.PHONY: test-example-scripts
+test-example-scripts:
+	$(PY_RUN) python examples/reader_from_path.py
+	$(PY_RUN) python examples/reader_from_file_object.py
+
 # Run heavy benchmarks, 1 = True, 0 = False
 BENCHMARK_FULL ?= 0
 
@@ -87,6 +93,13 @@ benchmark: | develop-release
 .PHONY: benchmark-full
 benchmark-full:
 	make BENCHMARK_FULL=1 benchmark
+
+# Docs
+# ====
+
+.PHONY: docs
+docs:
+	make -C doc html
 
 # Release management
 # ==================

@@ -1,26 +1,27 @@
 [package]
-name = "rust-csv-py"
+name = "rustcsv"
 version = "0.1.0"
 authors = ["Joar Wandborg <joar@wandborg.se>"]
+build = "build.rs"
 
-[lib]
-name = "rustcsv"
-crate-type = ["cdylib"]
+[build-dependencies]
+built = "^0.3"
 
 [dependencies]
+built = "^0.3"
 csv = "1"
 log = "*"
 env_logger = "*"
 tempfile = "3"
 
 [dependencies.pyo3]
-version = "0.4.1"
-features = ["extension-module", "python3"]
+version = "0.5.0"
+features = ["extension-module"]
 path = "pyo3"
-
-[build-dependencies]
-regex = "1.0.2"
-version_check = "0.1.4"
 
 [profile.release]
 lto = true
+
+[lib]
+name = "rustcsv"
+crate-type = ["cdylib"]

@@ -82,7 +82,7 @@ setup(
     packages=find_packages(),
     rust_extensions=[
         RustExtension(
-            "rustcsv._rustcsv",
+            "rustcsv.rustcsv",
             "Cargo.toml",
             binding=Binding.PyO3,
             native=RUSTCSV_BUILD_NATIVE,

@@ -25,20 +25,27 @@ install:
 - export PATH="$HOME/.cargo/bin:$PATH"
 - make develop-release
 
+stages:
+  - test
+  - deploy
+  - benchmark
+
+script:
+  - make $TARGET # Intentionally unquoted
+
 jobs:
   include:
     - stage: test
-      script: make test
       env:
-        - TARGET=test
+        - TARGET=test test-example-scripts
 
-    - stage: test
+    - stage: benchmark
       script: make benchmark-full
       env:
         - TARGET=benchmark-full
 
       # manylinux cp36
-    - stage: test
+    - stage: deploy
       services:
         - docker
       env:
@@ -50,7 +57,7 @@ jobs:
       if: tag IS present
 
       # manylinux cp37
-    - stage: test
+    - stage: deploy
       services:
         - docker
       env:
@@ -61,7 +68,7 @@ jobs:
       install: skip
       if: tag IS present
 
-    - stage: test
+    - stage: deploy
       install: skip
       script: make clean build-sdist publish-wheelhouse
       if: tag IS present

@@ -23,7 +23,7 @@ fn parse_quote_style(quote_style: &str) -> PyResult<csv::QuoteStyle> {
         "always" => Ok(csv::QuoteStyle::Always),
         "never" => Ok(csv::QuoteStyle::Never),
         "non_numeric" => Ok(csv::QuoteStyle::NonNumeric),
-        _ => Err(exc::ValueError::new(format!(
+        _ => Err(exc::ValueError::py_err(format!(
             "Invalid quote style: {:?}",
             quote_style
         ))),
@@ -57,7 +57,7 @@ impl CSVWriter {
         let gil = Python::acquire_gil();
         let py = gil.python();
         if !py.is_instance::<PyTuple, PyObjectRef>(record)? {
-            return Err(exc::TypeError::new(format!(
+            return Err(exc::TypeError::py_err(format!(
                 "Expected tuple, got {:?}",
                 record
             )));
@@ -75,7 +75,7 @@ impl CSVWriter {
             Ok(r) => Ok(r),
             Err(error) => {
                 error!("Could not write record: {:?}", error);
-                Err(exc::IOError::new(format!(
+                Err(exc::IOError::py_err(format!(
                     "Could not write record: {:?}",
                     error
                 )))
