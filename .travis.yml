@@ -37,7 +37,7 @@ jobs:
   include:
     - stage: test
       env:
-        - TARGET=test test-example-scripts
+        - TARGET="test test-example-scripts"
 
     - stage: benchmark
       script: make benchmark-full
