@@ -15,7 +15,9 @@ spam4,spam5,spam6
     readable_fd = open(writable_fd.name, "rb")
 
     for row_number, row in enumerate(CSVReader(readable_fd), start=1):
-        print(f"row #{row_number}: {row}")
+        print(
+            "row #{row_number}: {row}".format(row_number=row_number, row=row)
+        )
 
 # Prints:
 # row #1: ("spam1", "spam2", "spam3")

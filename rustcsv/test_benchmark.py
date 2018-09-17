@@ -44,7 +44,7 @@ def get_reader(impl: Parser, path: str) -> Iterable[Iterable[str]]:
     elif impl is Parser.RUST_NO_PY_READER:
         return CSVReader(path)
     else:
-        raise ValueError(f"Invalid impl: {impl}")
+        raise ValueError("Invalid impl: {impl}".format(impl=impl))
 
 
 def wrap_fd(impl: Parser, fd: BinaryIO, write: bool = False):
@@ -59,7 +59,7 @@ def wrap_fd(impl: Parser, fd: BinaryIO, write: bool = False):
         else:
             return io.TextIOWrapper(fd)
     else:
-        raise ValueError(f"Invalid impl: {impl}")
+        raise ValueError("Invalid impl: {impl}".format(impl=impl))
 
 
 @attr.s(auto_attribs=True)
@@ -128,7 +128,11 @@ def fx_csv_file(fx_benchmark_row_count, fx_benchmark_column_type: ColumnType):
                     for i in range(5)
                 ]
             else:
-                raise ValueError(f"Invalid column_type: {column_type}")
+                raise ValueError(
+                    "Invalid column_type: {column_type}".format(
+                        column_type=column_type
+                    )
+                )
 
             writer.writerow([str(i) for i in row])
 
@@ -156,8 +160,8 @@ def read_csv(impl: Parser, path: str):
 def test_benchmark_read(
     benchmark: BenchmarkFixture, impl, fx_csv_file: CSVFixture
 ):
-    benchmark.group = (
-        f"test_benchmark_read-{fx_csv_file.column_type}-{fx_csv_file.rows}"
+    benchmark.group = "test_benchmark_read-{column_type}-{rows}".format(
+        column_type=fx_csv_file.column_type, rows=fx_csv_file.rows
     )
     args = (fx_csv_file.path,)
     read_row_count = benchmark(partial(read_csv, impl), *args)
