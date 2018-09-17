@@ -44,12 +44,7 @@ list_pybins() {
     local bin
     for py in "$@"; do
         for bin in /opt/python/"${py}"*/bin; do
-            # Ignore 3.4 and 3.5 since we use f-strings
-            if ! grep -E "cp34|cp35" <<<"$bin" &> dev/null; then
-                echo "$bin"
-            else
-                yellow "Skipping $bin"
-            fi
+            echo "$bin"
         done
     done
 }

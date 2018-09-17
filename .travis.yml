@@ -44,6 +44,18 @@ jobs:
       env:
         - TARGET=benchmark-full
 
+      # manylinux cp35
+    - stage: deploy
+      services:
+        - docker
+      env:
+        - WHEEL_PYTHON_VERSIONS=cp35
+          # The wheels should be portable
+        - RUSTCSV_BUILD_NATIVE=False
+      script: bash travis/deploy.sh
+      install: skip
+      if: tag IS present
+
       # manylinux cp36
     - stage: deploy
       services:

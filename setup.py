@@ -16,8 +16,8 @@ def get_env_bool(key, default=None):
         return False
     else:
         raise ValueError(
-            f"Could not parse environment variable {key}'s value {value} as "
-            f"bool "
+            "Could not parse environment variable {key}'s value {value} as "
+            "bool ".format(key=key, value=value)
         )
 
 
