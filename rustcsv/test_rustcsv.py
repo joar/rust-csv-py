@@ -109,10 +109,9 @@ def test_raises_utf8error():
         ]
     ) as fd:
         with pytest.raises(rustcsv.error.UTF8Error, message="") as exc_info:
-            result = list(CSVReader(fd))
+            list(CSVReader(fd))
 
-        utf8_error: rustcsv.error.UTF8Error = exc_info.value
-
+        utf8_error = exc_info.value  # type: rustcsv.error.UTF8Error
         assert utf8_error.position is not None
         assert utf8_error.position == rustcsv.error.Position(
             byte=27, line=2, record=1
