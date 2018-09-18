@@ -3,24 +3,28 @@ from typing import Optional
 import attr
 
 
-@attr.s(slots=True, auto_attribs=True, cmp=True, frozen=True)
+@attr.s(slots=True, cmp=True, frozen=True)
 class Position:
-    byte: int
-    line: int
-    record: int
+    byte = attr.ib(type=int)  # type: int
+    line = attr.ib(type=int)  # type: int
+    record = attr.ib(type=int)  # type: int
 
 
 class CSVError(Exception):
     pass
 
 
-@attr.s(auto_attribs=True, cmp=True, frozen=True)
+@attr.s(cmp=True, frozen=True)
 class UTF8Error(CSVError):
-    message: str
-    position: Optional[Position] = None
+    message = attr.ib(type=str)  # type: str
+    position = attr.ib(
+        None, type=Optional[Position]
+    )  # type: Optional[Position]
 
 
-@attr.s(auto_attribs=True, cmp=True, frozen=True)
+@attr.s(cmp=True, frozen=True)
 class UnequalLengthsError(CSVError):
-    message: str
-    position: Optional[Position] = None
+    message = attr.ib(type=str)  # type: str
+    position = attr.ib(
+        None, type=Optional[Position]
+    )  # type: Optional[Position]

@@ -77,10 +77,10 @@ skip_if_not_full = pytest.mark.skipif(
 @pytest.fixture(
     scope="module",
     params=[
-        1_000,
-        10_000,
-        pytest.param(100_000, marks=skip_if_not_full),
-        pytest.param(1_000_000, marks=skip_if_not_full),
+        1000,
+        10 * 1000,
+        pytest.param(100 * 1000, marks=skip_if_not_full),
+        pytest.param(1000 * 1000, marks=skip_if_not_full),
     ],
 )
 def fx_benchmark_row_count(request: FixtureRequest):
