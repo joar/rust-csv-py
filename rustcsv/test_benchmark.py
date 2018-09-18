@@ -62,11 +62,11 @@ def wrap_fd(impl: Parser, fd: BinaryIO, write: bool = False):
         raise ValueError("Invalid impl: {impl}".format(impl=impl))
 
 
-@attr.s(auto_attribs=True)
+@attr.s()
 class CSVFixture:
-    path: str
-    rows: int
-    column_type: ColumnType
+    path = attr.ib(type=str)  # type: str
+    rows = attr.ib(type=int)  # type: int
+    column_type = attr.ib(type=ColumnType)  # type: ColumnType
 
 
 skip_if_not_full = pytest.mark.skipif(
