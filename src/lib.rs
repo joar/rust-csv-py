@@ -85,7 +85,7 @@ macro_rules! pyo3_built {
 // N.B: names: "_rustcsv" must be the name of the `.so` or `.pyd` file
 /// PyO3 + rust-csv
 /// An exploration in reading CSV as fast as possible from Python.
-#[pymodinit(rustcsv)]
+#[pymodinit(_rustcsv)]
 pub fn rustcsv(_py: Python, m: &PyModule) -> PyResult<()> {
     use built_info;
     env_logger::init();
