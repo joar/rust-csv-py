@@ -12,3 +12,7 @@ def cli():
 def read(file):
     for row in CSVReader(file):
         print(row)
+
+
+if __name__ == "__main__":
+    cli()
