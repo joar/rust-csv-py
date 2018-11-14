@@ -138,8 +138,7 @@ impl PyIterProtocol for CSVReader {
         match self.iter.next() {
             Some(res) => match res {
                 Ok(r) => {
-                    let gil = Python::acquire_gil();
-                    let py = gil.python();
+                    let py = self.token.py();
                     let rec: record::Record = r.into();
                     let t = rec.into_tuple(py);
                     Ok(Some(t.into_object(py)))

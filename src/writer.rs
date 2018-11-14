@@ -54,8 +54,7 @@ impl CSVWriter {
 
     /// Writes a CSV row to the file.
     fn writerow(&mut self, record: &PyObjectRef) -> PyResult<()> {
-        let gil = Python::acquire_gil();
-        let py = gil.python();
+        let py = self.token.py();
         if !py.is_instance::<PyTuple, PyObjectRef>(record)? {
             return Err(exc::TypeError::py_err(format!(
                 "Expected tuple, got {:?}",
