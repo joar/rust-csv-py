@@ -112,7 +112,7 @@ docs-autobuild:
 # Release management
 # ==================
 
-.PHONY: build-release
+.PHONY: build-release-sdist
 build-release-sdist:
 	$(PY_RUN) env \
 		RUSTCSV_BUILD_DEBUG=False \
@@ -127,7 +127,7 @@ requirements-files:
 	# Generate dev reqirements file
 	$(PY_RUN) pipenv lock --requirements --dev > dev-requirements.txt
 
-.PHONY: build-manylinux-wheels
+.PHONY: build-wheels-manylinux
 build-wheels-manylinux: | requirements-files
 	docker run --rm -it \
 		-v $(shell pwd):/io \
@@ -141,7 +141,7 @@ build-wheels-manylinux: | requirements-files
 build-sdist:
 	$(PY_RUN) python setup.py sdist --dist-dir $(WHEELHOUSE)
 
-.PHONY: build-osx-wheel
+.PHONY: build-wheels-osx
 build-wheels-osx: | reqirements-files
 	$(PY_RUN) env \
 		WHEELHOUSE=$(WHEELHOUSE) \
