@@ -18,6 +18,7 @@ hypothesis = "*"
 sphinx = "*"
 sphinx-autobuild = "*"
 sphinx-autodoc-typehints = "*"
+requests = ">=2.20.0" # CVE-2018-18074
 
 [requires]
-python_version = "3.6"
+python_version = "3.7"
