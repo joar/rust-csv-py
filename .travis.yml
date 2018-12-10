@@ -46,6 +46,7 @@ jobs:
 
       # manylinux cp35
     - stage: deploy
+      name: publish manylinux cp35
       services:
         - docker
       env:
@@ -58,6 +59,7 @@ jobs:
 
       # manylinux cp36
     - stage: deploy
+      name: publish manylinux cp36
       services:
         - docker
       env:
@@ -70,6 +72,7 @@ jobs:
 
       # manylinux cp37
     - stage: deploy
+      name: publish manylinux cp37
       services:
         - docker
       env:
@@ -81,6 +84,7 @@ jobs:
       if: tag IS present
 
     - stage: deploy
+      name: publish sdist
       install: skip
       script: make clean build-sdist publish-wheelhouse
       if: tag IS present
