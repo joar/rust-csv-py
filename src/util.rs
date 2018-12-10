@@ -1,5 +1,7 @@
 extern crate pyo3;
+use pyo3::exceptions as exc;
 use pyo3::prelude::*;
+use pyo3::types::PyBytes;
 
 pub fn get_optional_single_byte(bytes: Option<&PyBytes>, default: u8) -> PyResult<u8> {
     match bytes {
@@ -11,7 +13,7 @@ pub fn get_optional_single_byte(bytes: Option<&PyBytes>, default: u8) -> PyResul
 /// Extracts a single u8 from a PyBytes object
 /// If the PyBytes object contains more or less than 1 byte, an error is returned.
 pub fn get_single_byte(bytes: &PyBytes) -> PyResult<u8> {
-    let data: &[u8] = bytes.data();
+    let data: &[u8] = bytes.as_bytes();
     if data.len() > 1 {
         error!("data is too long: {:?}", data);
         return Err(PyErr::new::<exc::ValueError, _>((format!(

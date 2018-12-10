@@ -1,6 +1,11 @@
 extern crate pyo3;
 
+use pyo3::exceptions as exc;
 use pyo3::prelude::*;
+use pyo3::types::PyBytes;
+use pyo3::types::PyObjectRef;
+use pyo3::types::PyString;
+use pyo3::FromPyObject;
 use pyo3::Python;
 use std::io;
 use std::io::Read;
@@ -65,15 +70,17 @@ impl PyFile {
         match call_result.extract(py) {
             Ok(r) => Ok(Box::new(r)),
             //
-            Err(error) => if py.is_instance::<PyString, _>(call_result.as_ref(py))? {
-                return Err(exc::TypeError::py_err(format!(
-                    "The file {:?} is not open in binary mode. (Cause: {:?})",
-                    self.file_like.as_ref(py),
-                    error.to_object(py).as_ref(py),
-                )));
-            } else {
-                return Err(error);
-            },
+            Err(error) => {
+                if py.is_instance::<PyString, _>(call_result.as_ref(py))? {
+                    return Err(exc::TypeError::py_err(format!(
+                        "The file {:?} is not open in binary mode. (Cause: {:?})",
+                        self.file_like.as_ref(py),
+                        error.to_object(py).as_ref(py),
+                    )));
+                } else {
+                    return Err(error);
+                }
+            }
         }
     }
 
@@ -163,7 +170,8 @@ impl<'source> FromPyObject<'source> for PyFile {
 mod tests {
     use super::PyFile;
     use pyo3::prelude::*;
-    use pyo3::{PyDict, PyResult, Python};
+    use pyo3::types::PyDict;
+    use pyo3::{PyResult, Python};
     use std::io::Read;
     use std::io::Write;
     use tempfile::NamedTempFile;

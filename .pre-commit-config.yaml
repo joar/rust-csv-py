@@ -1,6 +1,13 @@
 repos:
--   repo: https://github.com/ambv/black
+  - repo: https://github.com/ambv/black
     rev: stable
     hooks:
     - id: black
       language_version: python3.6
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: cargo-fmt
+        language: system
+        pass_filenames: false
+        entry: cargo fmt

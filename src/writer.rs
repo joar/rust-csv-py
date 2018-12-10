@@ -1,19 +1,23 @@
 extern crate csv;
 extern crate pyo3;
 
-use pyo3::prelude::*;
+use pyo3::prelude::{pyclass, pymethods};
 
 use py_file::PyFile;
+use pyo3::exceptions as exc;
+use pyo3::types::PyBytes;
+use pyo3::types::PyObjectRef;
+use pyo3::types::PyTuple;
+use pyo3::FromPyObject;
+use pyo3::ObjectProtocol;
+use pyo3::PyRawObject;
+use pyo3::PyResult;
+use pyo3::PyTryFrom;
+use pyo3::Python;
 use util::get_optional_single_byte;
 
 #[pyclass(subclass)]
-pub struct QuoteStyle {
-    token: PyToken,
-}
-
-#[pyclass(subclass)]
 pub struct CSVWriter {
-    token: PyToken,
     writer: csv::Writer<PyFile>,
 }
 
@@ -45,16 +49,17 @@ impl CSVWriter {
             .double_quote(double_quote.unwrap_or(true))
             .terminator(csv::Terminator::Any(get_optional_single_byte(
                 terminator, b'\n',
-            )?)).escape(get_optional_single_byte(escape, b'\\')?)
+            )?))
+            .escape(get_optional_single_byte(escape, b'\\')?)
             .quote_style(parse_quote_style(
                 quote_style.unwrap_or("necessary".into()).as_str(),
-            )?).from_writer(PyFile::extract(fd)?);
-        obj.init(|token| CSVWriter { writer, token })
+            )?)
+            .from_writer(PyFile::extract(fd)?);
+        obj.init(|| CSVWriter { writer })
     }
 
     /// Writes a CSV row to the file.
-    fn writerow(&mut self, record: &PyObjectRef) -> PyResult<()> {
-        let py = self.token.py();
+    fn writerow(&mut self, record: &PyObjectRef, py: Python) -> PyResult<()> {
         if !py.is_instance::<PyTuple, PyObjectRef>(record)? {
             return Err(exc::TypeError::py_err(format!(
                 "Expected tuple, got {:?}",

@@ -3,7 +3,6 @@ name = "rustcsv"
 version = "0.1.0"
 authors = ["Joar Wandborg <joar@wandborg.se>"]
 build = "build.rs"
-publish = false
 
 [build-dependencies]
 built = "^0.3"
@@ -16,12 +15,9 @@ env_logger = "*"
 tempfile = "3"
 
 [dependencies.pyo3]
-version = "0.5.0"
+version = "0.5.0-pre"
 features = ["extension-module"]
-git = "https://github.com/PyO3/pyo3"
-# Commit:
-# Fix cfg on PyEval_InitThread to fix #219
-rev = "10ef6cd1113c5d8fbcea01481babf1d327c2bbd6"
+path = "pyo3"
 
 [profile.release]
 lto = true

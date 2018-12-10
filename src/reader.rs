@@ -1,6 +1,15 @@
 extern crate pyo3;
 use py_file::PyFile;
+use pyo3::class::PyIterProtocol;
+use pyo3::exceptions as exc;
 use pyo3::prelude::*;
+use pyo3::types::PyBytes;
+use pyo3::types::PyObjectRef;
+use pyo3::types::PyString;
+use pyo3::PyObject;
+use pyo3::PyRawObject;
+use pyo3::PyResult;
+use pyo3::Python;
 use record;
 use util::get_optional_single_byte;
 
@@ -14,10 +23,11 @@ pub enum CSVSource {
     Readable(PyFile),
 }
 
-/// The `CSVReader` Python class
+// Python docstring for CSVReader
+/// CSVReader(path_or_fd, delimiter, terminator)
+/// --
 #[pyclass(subclass)]
 pub struct CSVReader {
-    token: PyToken,
     // It would be nice to have a reference to csv::Reader here,
     // but I haven't figured out lifetimes yet.
     /// Iterator over the parsed records
@@ -61,6 +71,8 @@ pub fn make_records_iterator(
 /// Implements the Python type methods for `CSVReader`
 #[pymethods]
 impl CSVReader {
+    /// CSVReader(path_or_fd, delimiter: bytes, terminator: bytes)
+    /// --
     /// Creates a new CSVReader instance
     ///
     /// - `path_or_fd` - Either a string path to a file or a [binary file].
@@ -77,14 +89,12 @@ impl CSVReader {
         path_or_fd: &'static PyObjectRef,
         delimiter: Option<&PyBytes>,
         terminator: Option<&PyBytes>,
+        py: Python,
     ) -> PyResult<()> {
         debug!(
             "__new__: path_or_fd: {:?}, delimiter: {:?}, terminator: {:?}",
             path_or_fd, delimiter, terminator
         );
-        let gil = Python::acquire_gil();
-        let py = gil.python();
-
         let delimiter_arg = get_optional_single_byte(delimiter, b',')?;
         let terminator_arg = get_optional_single_byte(terminator, b'\n')?;
 
@@ -99,7 +109,7 @@ impl CSVReader {
         };
 
         match make_records_iterator(source, delimiter_arg, terminator_arg) {
-            Ok(iter) => obj.init(|token| CSVReader { token, iter }),
+            Ok(iter) => obj.init(|| CSVReader { iter }),
             Err(error) => match error.into_kind() {
                 csv::ErrorKind::Io(err) => Err(err.into()),
                 err => Err(exc::IOError::py_err(format!(
@@ -138,10 +148,10 @@ impl PyIterProtocol for CSVReader {
         match self.iter.next() {
             Some(res) => match res {
                 Ok(r) => {
-                    let py = self.token.py();
+                    let gil = Python::acquire_gil();
+                    let py = gil.python();
                     let rec: record::Record = r.into();
-                    let t = rec.into_tuple(py);
-                    Ok(Some(t.into_object(py)))
+                    Ok(Some(rec.into_object(py)))
                 }
                 Err(error) => match error.into_kind() {
                     csv::ErrorKind::Io(err) => {

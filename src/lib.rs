@@ -1,14 +1,13 @@
-#![feature(specialization, extern_prelude, core_intrinsics)]
+#![feature(specialization)]
 
 extern crate built;
 extern crate csv;
 extern crate env_logger;
 #[macro_use]
 extern crate log;
+extern crate tempfile;
 #[macro_use]
 extern crate pyo3;
-// Used for testing
-extern crate tempfile;
 
 pub mod py_file;
 pub mod reader;
@@ -24,7 +23,7 @@ pub mod built_info {
 macro_rules! pyo3_built {
     ($py: ident, $info: ident) => {{
         use $crate::built::util::strptime;
-        use $crate::pyo3::prelude::PyDict;
+        use $crate::pyo3::types::{PyDict, PyString};
 
         let info = PyDict::new($py);
 
@@ -85,7 +84,7 @@ macro_rules! pyo3_built {
 // N.B: names: "_rustcsv" must be the name of the `.so` or `.pyd` file
 /// PyO3 + rust-csv
 /// An exploration in reading CSV as fast as possible from Python.
-#[pymodinit(_rustcsv)]
+#[pymodule(_rustcsv)]
 pub fn rustcsv(_py: Python, m: &PyModule) -> PyResult<()> {
     use built_info;
     env_logger::init();

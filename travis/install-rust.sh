@@ -17,7 +17,7 @@ install_rust() {
             | sh -s -- -y --default-toolchain "$RUST_VERSION"
     fi
     if ! grep "$CARGO_BIN" <<<"$PATH" &> /dev/null; then
-        green "Addigng $CARGO_BIN to \$PATH"
+        green "Adding $CARGO_BIN to \$PATH"
         export PATH="$CARGO_BIN:$PATH"
     fi
 }
@@ -25,7 +25,7 @@ install_rust() {
 
 if [[ "${BASH_SOURCE[0]}" = "${0}" ]]; then
     red "The script should be sourced so that it's able to export \$PATH." \
-        "e.g. 'source ${BASH_SOURCE[@]}' will install rust and re-export \$PATH"
+        "e.g. 'source ${BASH_SOURCE[*]}' will install rust and re-export \$PATH"
     exit 1
 else
     install_rust "$@"
