@@ -36,10 +36,12 @@ script:
 jobs:
   include:
     - stage: test
+      name: run tests
       env:
         - TARGET="test test-example-scripts"
 
     - stage: benchmark
+      name: run benchmark-full
       script: make benchmark-full
       env:
         - TARGET=benchmark-full
