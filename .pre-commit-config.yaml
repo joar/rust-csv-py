@@ -10,4 +10,4 @@ repos:
         name: cargo-fmt
         language: system
         pass_filenames: false
-        entry: cargo fmt
+        entry: cargo +stable fmt
