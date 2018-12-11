@@ -11,7 +11,9 @@ cache:
     - $HOME/.cache/pip
 env:
   global:
-    - RUST_VERSION=nightly
+    # Minimum version required by PyO3
+    # Latest nightly does not work in manylinux container
+    - RUSTCSV_RUST_VERSION=nightly-2018-11-03
     - RUSTCSV_BUILD_DEBUG=False
 
 before_install:
@@ -21,8 +23,7 @@ before_install:
 - pipenv install --dev --deploy
 
 install:
-- curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUST_VERSION
-- export PATH="$HOME/.cargo/bin:$PATH"
+- source ./travis/install-rust.sh
 - make develop-release
 
 stages:

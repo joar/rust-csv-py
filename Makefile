@@ -4,6 +4,7 @@ PY_RUN ?= pipenv run
 # extension module.
 RUSTCSV_BUILD_DEBUG ?= True
 RUSTCSV_BUILD_NATIVE ?= True
+RUSTCSV_RUST_VERSION ?= nightly
 MANYLINUX_IMAGE ?= quay.io/pypa/manylinux1_x86_64
 WHEEL_PYTHON_VERSIONS ?= cp36 cp37
 WHEELHOUSE = wheelhouse
@@ -87,7 +88,6 @@ benchmark: | develop-release
 		--benchmark-only \
 		--benchmark-timer $(PYTEST_BENCHMARK_TIMER) \
 		--benchmark-sort $(PYTEST_BENCHMARK_SORT) \
-		--benchmark-histogram \
 		--benchmark-autosave
 
 .PHONY: benchmark-full
@@ -133,6 +133,7 @@ build-wheels-manylinux: | requirements-files
 		-v $(shell pwd):/io \
 		--env RUSTCSV_BUILD_DEBUG=$(RUSTCSV_BUILD_DEBUG) \
 		--env RUSTCSV_BUILD_NATIVE=$(RUSTCSV_BUILD_NATIVE) \
+		--env RUSTCSV_RUST_VERSION=$(RUSTCSV_RUST_VERSION) \
 		--env WHEELHOUSE=/io/$(WHEELHOUSE) \
 		$(MANYLINUX_IMAGE) \
 		/io/travis/build-wheels-manylinux.sh $(WHEEL_PYTHON_VERSIONS)
