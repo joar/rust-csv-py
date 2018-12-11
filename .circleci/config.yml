@@ -4,13 +4,15 @@ jobs:
     docker:
       - image: circleci/python:3.7
         environment:
-          - RUST_VERSION: nightly
+          - RUSTCSV_BUILD_RUST_VERSION: nightly
           - RUSTCSV_BUILD_DEBUG: "False"
     steps:
       - checkout
+      - run: echo 'export PATH=~/.cargo/bin:$PATH' >> "$BASH_ENV"
       - run: pip install --user --upgrade pip pipenv twine
       - run: pipenv install --dev --deploy
-      - run: curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUST_VERSION
+      - run: travis/install-rust.sh
+      - run: cargo version
       - run: make test test-example-scripts
 
 workflows:
