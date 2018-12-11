@@ -2,10 +2,10 @@ version: 2.1
 jobs:
   test:
     docker:
-      image: circleci/python:3.7
-      environment:
-        RUST_VERSION: nightly
-        RUSTCSV_BUILD_DEBUG: "False"
+      - image: circleci/python:3.7
+        environment:
+          RUST_VERSION: nightly
+          RUSTCSV_BUILD_DEBUG: "False"
     steps:
       - checkout
       - run: pip install --upgrade pip pipenv twine
