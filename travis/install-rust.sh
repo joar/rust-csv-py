@@ -5,16 +5,16 @@ TRAVIS_DIR="$(dirname "${BASH_SOURCE[0]}")"
 source "$TRAVIS_DIR/_output_helpers.sh"
 
 # Parameters
-RUST_VERSION="${RUST_VERSION:-"nightly"}"
+RUSTCSV_RUST_VERSION="${RUSTCSV_RUST_VERSION:-"nightly"}"
 
 install_rust() {
-    # install rust + cargo nightly
+    # install rust + cargo
     # ============================
     CARGO_BIN=$HOME/.cargo/bin
     if ! test -d "$CARGO_BIN"; then
-        green "Installing rust + cargo"
+        green "Installing rust + cargo, version $RUSTCSV_RUST_VERSION"
         curl https://sh.rustup.rs -sSf \
-            | sh -s -- -y --default-toolchain "$RUST_VERSION"
+            | sh -s -- -y --default-toolchain "$RUSTCSV_RUST_VERSION"
     fi
     if ! grep "$CARGO_BIN" <<<"$PATH" &> /dev/null; then
         green "Adding $CARGO_BIN to \$PATH"
