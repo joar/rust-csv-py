@@ -1,0 +1,20 @@
+version: 2.1
+jobs:
+  test:
+    docker:
+      image: circleci/python:3.7
+      environment:
+        RUST_VERSION: nightly
+        RUSTCSV_BUILD_DEBUG: "False"
+    steps:
+      - checkout
+      - run: pip install --upgrade pip pipenv twine
+      - run: pipenv install --dev --deploy
+      - run: curl https://sh.rustup.rs -sSf | sh -s -- -y --default-toolchain $RUST_VERSION
+      - run: make test test-example-scripts
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test
