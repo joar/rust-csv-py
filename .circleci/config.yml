@@ -8,6 +8,7 @@ jobs:
           - RUSTCSV_BUILD_DEBUG: "False"
     steps:
       - checkout
+      - run: git submodule update --init --recursive
       - run: echo 'export PATH=$HOME/.cargo/bin:$PATH' >> "$BASH_ENV"
       - run: pip install --user --upgrade pip pipenv twine
       - run: pipenv install --dev --deploy
