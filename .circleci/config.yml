@@ -1,20 +1,7 @@
-version: 2
-jobs:
-  test:
-    docker:
-      - image: circleci/python:3.7
-        environment:
-          - RUSTCSV_BUILD_DEBUG: "False"
-    steps:
-      - checkout_recursive
-      - install_rust
-      - run: pip install --user --upgrade pip pipenv twine
-      - run: pipenv install --dev --deploy
-      - run: make develop-release
-      - run: make test test-example-scripts
+version: 2.1
 
 commands:
-  checkout_recursive:
+  recursive:
     description: Check out repository and submodules
     steps:
       - checkout
@@ -22,15 +9,29 @@ commands:
 
   install_rust:
     description: Install rust toochain
-    parameters:
-      version:
-        type: string
-        default: nightly-2018-11-03
+    # parameters:
+    #   version:
+    #     type: string
+    #     default: nightly
     steps:
       - run: echo 'export PATH=$HOME/.cargo/bin:$PATH' >> "$BASH_ENV"
-      - run: echo 'export RUSTCSV_RUST_VERSION=<< parameters.version' >> "$BASH_ENV"
       - run: travis/install-rust.sh
       - run: cargo version
+
+jobs:
+  test:
+    docker:
+      - image: circleci/python:3.7
+        environment:
+          - RUSTCSV_BUILD_RUST_VERSION: nightly-2018-11-03
+          - RUSTCSV_BUILD_DEBUG: "False"
+    steps:
+      - recursive: {}
+      - install_rust
+      - run: pip install --user --upgrade pip pipenv twine
+      - run: pipenv install --dev --deploy
+      - run: make develop-release
+      - run: make test test-example-scripts
 
 
 workflows:
