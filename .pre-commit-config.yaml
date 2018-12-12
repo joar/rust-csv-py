@@ -11,3 +11,8 @@ repos:
         language: system
         pass_filenames: false
         entry: cargo +stable fmt
+      - id: circleci-config-validate
+        name: circleci-config-validate
+        language: system
+        files: ^.circleci/config.yml$
+        entry: circleci config validate
