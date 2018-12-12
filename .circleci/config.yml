@@ -1,7 +1,15 @@
 version: 2.1
 
+executors:
+  python:
+    docker:
+      - image: circleci/python:3.7
+        environment:
+          - RUSTCSV_BUILD_RUST_VERSION: nightly-2018-11-03
+          - RUSTCSV_BUILD_DEBUG: "False"
+
 commands:
-  recursive:
+  checkout_recursive:
     description: Check out repository and submodules
     steps:
       - checkout
@@ -18,18 +26,19 @@ commands:
       - run: travis/install-rust.sh
       - run: cargo version
 
-jobs:
-  test:
-    docker:
-      - image: circleci/python:3.7
-        environment:
-          - RUSTCSV_BUILD_RUST_VERSION: nightly-2018-11-03
-          - RUSTCSV_BUILD_DEBUG: "False"
+  install_python:
+    description: Install python dependencies
     steps:
-      - recursive: {}
-      - install_rust
       - run: pip install --user --upgrade pip pipenv twine
       - run: pipenv install --dev --deploy
+
+jobs:
+  test:
+    executor: python
+    steps:
+      - checkout_recursive
+      - install_rust
+      - install_python
       - run: make develop-release
       - run: make test test-example-scripts
 
