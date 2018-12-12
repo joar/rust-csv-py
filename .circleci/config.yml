@@ -17,10 +17,6 @@ commands:
 
   install_rust:
     description: Install rust toochain
-    # parameters:
-    #   version:
-    #     type: string
-    #     default: nightly
     steps:
       - run: echo 'export PATH=$HOME/.cargo/bin:$PATH' >> "$BASH_ENV"
       - run: travis/install-rust.sh
@@ -42,6 +38,26 @@ jobs:
       - run: make develop-release
       - run: make test test-example-scripts
 
+  benchmark:
+    executor: python
+    steps:
+      - checkout_recursive
+      - install_rust
+      - install_python
+      - make develop-release
+      - make benchmark-full
+
+  build-wheel-manylinux:
+    parameters:
+      python_version:
+        type: string
+        description: Python runtime identifier(?), e.g. cp37
+    executor: python
+    steps:
+      - checkout_recursive
+      - install_python
+      - setup_remote_docker
+      - run: env WHEEL_PYTHON_VERSIONS='<< parameters.python_version >>' make clian build-wheels-manylinux publish-wheelhouse
 
 workflows:
   version: 2
