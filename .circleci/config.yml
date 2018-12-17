@@ -44,8 +44,8 @@ jobs:
       - checkout_recursive
       - install_rust
       - install_python
-      - make develop-release
-      - make benchmark-full
+      - run: make develop-release
+      - run: make benchmark-full
 
   build-wheel-manylinux:
     parameters:
@@ -64,3 +64,10 @@ workflows:
   test:
     jobs:
       - test: {}
+      - build-wheel-manylinux:
+          python_version: cp37
+          requires:
+            - test
+      - benchmark:
+          requires:
+            - test
