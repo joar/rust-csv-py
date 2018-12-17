@@ -136,7 +136,7 @@ build-wheels-manylinux: | requirements-files
 		--env RUSTCSV_BUILD_RUST_VERSION=$(RUSTCSV_BUILD_RUST_VERSION) \
 		--env WHEELHOUSE=/io/$(WHEELHOUSE) \
 		$(MANYLINUX_IMAGE) \
-		bash -c 'tar -C io xv; /io/travis/build-wheels-manylinux.sh $(WHEEL_PYTHON_VERSIONS); cd /io && tar cv $$WHEELHOUSE' | tar xv
+		bash -c 'cat > /docker-files.tar; cd /io; tar xvf /docker-files.tar; /io/travis/build-wheels-manylinux.sh $(WHEEL_PYTHON_VERSIONS); tar cv $$WHEELHOUSE' | tar xv
 
 .PHONY: build-sdist
 build-sdist:
