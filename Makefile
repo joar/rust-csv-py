@@ -137,8 +137,7 @@ build-wheels-manylinux: | requirements-files
 		$(MANYLINUX_IMAGE) \
 		bash -c 'sleep 6000'
 	docker exec build-wheels-manylinux mkdir /io
-	tar cv dev-requirements.txt requirements.txt travis \
-		| docker exec -i build-wheels-manylinux tar -C /io -xv
+	tar -c . | docker exec -i build-wheels-manylinux tar -C /io -x
 	docker exec -it build-wheels-manylinux /io/travis/build-wheels-manylinux.sh $(WHEEL_PYTHON_VERSIONS)
 	docker exec -i build-wheels-manylinux tar -C /io -cv $(WHEELHOUSE) | tar xv
 	# docker run --rm -it \
