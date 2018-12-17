@@ -129,14 +129,14 @@ requirements-files:
 
 .PHONY: build-wheels-manylinux
 build-wheels-manylinux: | requirements-files
-	docker run --rm -it \
-		-v $(shell pwd):/io \
+	tar cv travis/ \
+		| docker run --rm -i \
 		--env RUSTCSV_BUILD_DEBUG=$(RUSTCSV_BUILD_DEBUG) \
 		--env RUSTCSV_BUILD_NATIVE=$(RUSTCSV_BUILD_NATIVE) \
 		--env RUSTCSV_BUILD_RUST_VERSION=$(RUSTCSV_BUILD_RUST_VERSION) \
 		--env WHEELHOUSE=/io/$(WHEELHOUSE) \
 		$(MANYLINUX_IMAGE) \
-		bash /io/travis/build-wheels-manylinux.sh $(WHEEL_PYTHON_VERSIONS)
+		bash -c 'tar xv; ./travis/build-wheels-manylinux.sh $(WHEEL_PYTHON_VERSIONS); cd /io && tar cv $$WHEELHOUSE' | tar xv
 
 .PHONY: build-sdist
 build-sdist:

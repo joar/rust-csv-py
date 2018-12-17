@@ -81,9 +81,5 @@ build_wheel() {
     env "${env_vars[@]}" "${PYBIN}/pip" wheel /io/ -w wheelhouse/
 }
 
-if [[ "${BASH_SOURCE[0]}" = "${0}" ]]; then
-    set -e -x
-    build_wheels "$@"
-else
-    yellow "Script was sourced, not executing build_wheels"
-fi
+(set -e -x;
+build_wheels "$@")
