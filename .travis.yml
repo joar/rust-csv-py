@@ -23,7 +23,8 @@ before_install:
 - pipenv install --dev --deploy
 
 install:
-- source ./travis/install-rust.sh
+- ./travis/install-rust.sh
+- source ~/.cargo/env
 - make develop-release
 
 stages:
