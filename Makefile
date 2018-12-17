@@ -129,14 +129,26 @@ requirements-files:
 
 .PHONY: build-wheels-manylinux
 build-wheels-manylinux: | requirements-files
-	tar cv travis/ dev-requirements.txt requirements.txt \
-		| docker run --rm -i \
+	docker run -d --name build-wheels-manylinux \
 		--env RUSTCSV_BUILD_DEBUG=$(RUSTCSV_BUILD_DEBUG) \
 		--env RUSTCSV_BUILD_NATIVE=$(RUSTCSV_BUILD_NATIVE) \
 		--env RUSTCSV_BUILD_RUST_VERSION=$(RUSTCSV_BUILD_RUST_VERSION) \
 		--env WHEELHOUSE=/io/$(WHEELHOUSE) \
 		$(MANYLINUX_IMAGE) \
-		bash -exc 'cat > /docker-files.tar; mkdir /io; cd /io; tar xvf /docker-files.tar; /io/travis/build-wheels-manylinux.sh $(WHEEL_PYTHON_VERSIONS); tar cv $$WHEELHOUSE' | tar xv
+		bash -c 'sleep 6000'
+	docker exec build-wheels-manylinux mkdir /io
+	tar cv dev-requirements.txt requirements.txt travis \
+		| docker exec -i build-wheels-manylinux tar -C /io -xv
+	docker exec -it build-wheels-manylinux /io/travis/build-wheels-manylinux.sh $(WHEEL_PYTHON_VERSIONS)
+	docker exec -i build-wheels-manylinux tar -C /io -cv $(WHEELHOUSE) | tar xv
+	# docker run --rm -it \
+	# 	-v $(shell pwd):/io \
+	# 	--env RUSTCSV_BUILD_DEBUG=$(RUSTCSV_BUILD_DEBUG) \
+	# 	--env RUSTCSV_BUILD_NATIVE=$(RUSTCSV_BUILD_NATIVE) \
+	# 	--env RUSTCSV_BUILD_RUST_VERSION=$(RUSTCSV_BUILD_RUST_VERSION) \
+	# 	--env WHEELHOUSE=/io/$(WHEELHOUSE) \
+	# 	$(MANYLINUX_IMAGE) \
+	# 	/io/travis/build-wheels-manylinux.sh $(WHEEL_PYTHON_VERSIONS)
 
 .PHONY: build-sdist
 build-sdist:
