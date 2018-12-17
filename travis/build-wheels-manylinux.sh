@@ -14,7 +14,8 @@ function message { echo "$@" >&2; } # like echo, but prints to stderr
 # yum install -y openssl-devel
 
 build_wheels()  {
-    source "$TRAVIS_DIR"/install-rust.sh  # re-exports $PATH
+    "$TRAVIS_DIR"/install-rust.sh
+    export PATH="$HOME/.cargo/bin:$PATH"
 
     # Parameters
     WHEELHOUSE="${WHEELHOUSE:-"/io/wheelhouse"}"

@@ -132,7 +132,7 @@ build-wheels-manylinux: | requirements-files
 	docker run -d --name build-wheels-manylinux \
 		--env RUSTCSV_BUILD_DEBUG=$(RUSTCSV_BUILD_DEBUG) \
 		--env RUSTCSV_BUILD_NATIVE=$(RUSTCSV_BUILD_NATIVE) \
-		--env RUSTCSV_BUILD_RUST_VERSION=$(RUSTCSV_BUILD_RUST_VERSION) \
+		--env RUSTCSV_RUST_VERSION=$(RUSTCSV_BUILD_RUST_VERSION) \
 		--env WHEELHOUSE=/io/$(WHEELHOUSE) \
 		$(MANYLINUX_IMAGE) \
 		bash -c 'sleep 6000'

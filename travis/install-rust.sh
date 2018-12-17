@@ -12,15 +12,15 @@ function message { echo "$@" >&2; } # like echo, but prints to stderr
 # END UTILS
 
 # Parameters
-RUSTCSV_RUST_VERSION="${RUSTCSV_RUST_VERSION:-"nightly"}"
+RUSTCSV_BUILD_RUST_VERSION="${RUSTCSV_BUILD_RUST_VERSION:-"nightly"}"
 
 install_rust() {
     # install rust + cargo
     # ============================
     CARGO_BIN=$HOME/.cargo/bin
-    green "Installing rust + cargo, version $RUSTCSV_RUST_VERSION"
+    green "Installing rust + cargo, version $RUSTCSV_BUILD_RUST_VERSION"
     curl https://sh.rustup.rs -sSf \
-        | sh -s -- -y --default-toolchain "$RUSTCSV_RUST_VERSION"
+        | sh -s -- -y --default-toolchain "$RUSTCSV_BUILD_RUST_VERSION"
     if ! grep "$CARGO_BIN" <<<"$PATH" &> /dev/null; then
         yellow "Warning: $CARGO_BIN is not in your \$PATH"
     fi
