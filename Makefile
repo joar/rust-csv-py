@@ -4,7 +4,7 @@ PY_RUN ?= pipenv run
 # extension module.
 RUSTCSV_BUILD_DEBUG ?= True
 RUSTCSV_BUILD_NATIVE ?= True
-RUSTCSV_RUST_VERSION ?= nightly
+RUSTCSV_BUILD_RUST_VERSION ?= nightly
 MANYLINUX_IMAGE ?= quay.io/pypa/manylinux1_x86_64
 WHEEL_PYTHON_VERSIONS ?= cp36 cp37
 WHEELHOUSE = wheelhouse
@@ -133,10 +133,10 @@ build-wheels-manylinux: | requirements-files
 		-v $(shell pwd):/io \
 		--env RUSTCSV_BUILD_DEBUG=$(RUSTCSV_BUILD_DEBUG) \
 		--env RUSTCSV_BUILD_NATIVE=$(RUSTCSV_BUILD_NATIVE) \
-		--env RUSTCSV_RUST_VERSION=$(RUSTCSV_RUST_VERSION) \
+		--env RUSTCSV_BUILD_RUST_VERSION=$(RUSTCSV_BUILD_RUST_VERSION) \
 		--env WHEELHOUSE=/io/$(WHEELHOUSE) \
 		$(MANYLINUX_IMAGE) \
-		/io/travis/build-wheels-manylinux.sh $(WHEEL_PYTHON_VERSIONS)
+		bash /io/travis/build-wheels-manylinux.sh $(WHEEL_PYTHON_VERSIONS)
 
 .PHONY: build-sdist
 build-sdist:
