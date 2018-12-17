@@ -57,7 +57,7 @@ jobs:
       - checkout_recursive
       - install_python
       - setup_remote_docker
-      - run: env WHEEL_PYTHON_VERSIONS='<< parameters.python_version >>' make clian build-wheels-manylinux publish-wheelhouse
+      - run: env WHEEL_PYTHON_VERSIONS='<< parameters.python_version >>' make clean build-wheels-manylinux publish-wheelhouse
 
 workflows:
   version: 2
