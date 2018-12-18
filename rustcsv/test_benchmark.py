@@ -18,22 +18,22 @@ _log = logging.getLogger(__name__)
 
 
 class Parser(enum.Enum):
-    STDLIB = enum.auto()
-    RUST = enum.auto()
-    RUST_NO_PY_READER = enum.auto()
+    STDLIB = "STDLIB"
+    RUST = "RUST"
+    RUST_NO_PY_READER = "RUST_NO_PY_READER"
 
 
 class FileStorage(enum.Enum):
-    DISK = enum.auto()
-    MEMORY = enum.auto()
+    DISK = "DISK"
+    MEMORY = "MEMORY"
 
 
 class ColumnType(enum.Enum):
-    INTEGER = enum.auto()
-    UNICODE = enum.auto()
-    UNICODE_LONG = enum.auto()
-    ASCII = enum.auto()
-    ASCII_LONG = enum.auto()
+    INTEGER = "INTEGER"
+    UNICODE = "UNICODE"
+    UNICODE_LONG = "UNICODE_LONG"
+    ASCII = "ASCII"
+    ASCII_LONG = "ASCII_LONG"
 
 
 def get_reader(impl: Parser, path: str) -> Iterable[Iterable[str]]:
