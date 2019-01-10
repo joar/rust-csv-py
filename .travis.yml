@@ -12,7 +12,8 @@ cache:
 env:
   global:
     # Minimum version required by PyO3
-    - RUSTCSV_RUST_VERSION=nightly
+    # Latest nightly does not work in manylinux container
+    - RUSTCSV_RUST_VERSION=nightly-2019-01-09
     - RUSTCSV_BUILD_DEBUG=False
 
 before_install:
