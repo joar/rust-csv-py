@@ -15,6 +15,8 @@ env:
     # Latest nightly does not work in manylinux container
     - RUSTCSV_RUST_VERSION=nightly-2019-01-09
     - RUSTCSV_BUILD_DEBUG=False
+    - RUSTCSV_LOG=debug
+    - RUST_BACKTRACE=1
 
 before_install:
 - pip install --upgrade pip
@@ -46,6 +48,7 @@ jobs:
       name: run benchmark-full
       script: make benchmark-full
       env:
+        - RUSTCSV_LOG=error
         - TARGET=benchmark-full
 
       # manylinux cp35
