@@ -87,7 +87,8 @@ macro_rules! pyo3_built {
 #[pymodule(_rustcsv)]
 pub fn rustcsv(_py: Python, m: &PyModule) -> PyResult<()> {
     use built_info;
-    env_logger::init();
+
+    env_logger::Builder::from_env("RUSTCSV_LOG").init();
     m.add_class::<reader::CSVReader>()?;
     m.add_class::<writer::CSVWriter>()?;
     m.add::<PyObject>("__build__", pyo3_built!(_py, built_info))?;
